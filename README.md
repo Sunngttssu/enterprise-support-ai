@@ -84,7 +84,7 @@
 │   │                                                             │    │
 │   │  ┌─────────────────┐    ┌──────────────────────────────┐    │    │
 │   │  │  AGENT 1        │    │  NEO4J GRAPH RETRIEVAL       │    │    │
-│   │  │  Hybrid Extractor───▶│  Cypher Query (1..2 hops)    │    │    │
+│   │  │  Hybrid Extractor───▶│  Cypher Query (1..2 hops)   │    │    │
 │   │  │  (Regex + LLM)  │    │  against Neo4j AuraDB Cloud  │    │    │
 │   │  └─────────────────┘    └──────────┬───────────────────┘    │    │
 │   │                                    │                        │    │
@@ -99,7 +99,7 @@
 │   │                                    ▼                        │    │
 │   │  ┌─────────────────┐    ┌─────────────────────────────┐     │    │
 │   │  │  AGENT 2        │    │  AGENT 3                    │     │    │
-│   │  │  Strict Drafter ├───▶│  The Critic (JSON QA)       │     │    │
+│   │  │  Strict Drafter ├───▶│  The Critic (JSON QA)      │     │    │
 │   │  │  (Graph-Only LLM)    │  Scrubs filler & meta-text  │     │    │
 │   │  └─────────────────┘    └─────────────────────────────┘     │    │
 │   └─────────────────────────────────────────────────────────────┘    │
@@ -156,7 +156,7 @@ User Input: "My TitanBook is draining battery really fast"
     └───────────────┬───────────────┘
                     │
     ┌───────────────┴───────────────┐
-    │  LLM JSON-mode (Dynamic)     │    ──▶  ["battery"]
+    │  LLM JSON-mode (Dynamic)      │    ──▶  ["battery"]
     └───────────────┬───────────────┘
                     │
           Union + Deduplication
