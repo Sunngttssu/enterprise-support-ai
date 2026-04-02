@@ -1,0 +1,19 @@
+DOCUMENT TITLE: TitanBook AI Workstation - Service Manual
+DOCUMENT ID: DOC-HW-9901
+LAST UPDATED: March 2026
+
+1. PRODUCT OVERVIEW
+The TitanBook AI Workstation is a high-performance laptop designed for local machine learning workloads. It features a dedicated NPU (Neural Processing Unit) and 64GB of unified memory.
+
+2. HARDWARE DIAGNOSTICS
+Error Code: SYS-ERR-0x88 (Battery Drain Anomaly)
+Symptom: The laptop battery drains from 100% to 0% within 45 minutes while in Sleep Mode.
+Cause: A conflict in the Windows standby protocols keeps the dedicated GPU active when the lid is closed.
+Resolution Step 1: Do NOT replace the physical battery. This is a known firmware issue.
+Resolution Step 2: Connect the laptop to AC power and update the System BIOS to version v2.4 or higher.
+
+Error Code: SYS-ERR-0x92 (Thermal Throttling Lock)
+Symptom: The CPU clock speed locks at 0.8 GHz, causing massive performance drops, even when the laptop is cool to the touch.
+Cause: The internal thermal sensor ribbon cable is loose or defective, causing the motherboard to read a false 99°C temperature.
+Resolution Step 1: Open the bottom chassis using a T5 Torx screwdriver.
+Resolution Step 2: Reseat the thermal sensor ribbon cable connected to port J_THERM_1. If the issue persists, the motherboard must be replaced (RMA required).

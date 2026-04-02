@@ -1,0 +1,19 @@
+DOCUMENT TITLE: Enterprise Software Licensing and Seat Management
+DOCUMENT ID: DOC-LIC-1105
+LAST UPDATED: March 2026
+
+1. LICENSE TYPES
+Floating License: Allows the software to be installed on an unlimited number of devices, but only a set number of concurrent users can have the software open at the exact same time. Requires an active connection to the company License Server.
+Node-Locked License: Binds the software to a specific machine's MAC address. Does not require an internet connection after the initial activation.
+
+2. TROUBLESHOOTING ACTIVATION
+Error Code: ACT-5001 (Maximum Activations Reached)
+Symptom: A user attempts to log into the software and receives a "Seat Limit Exceeded" warning.
+Cause: All available Floating Licenses are currently checked out by other users on the network.
+Resolution Step 1: The IT Administrator must log into the License Portal and view the "Active Sessions" tab.
+Resolution Step 2: The IT Administrator can manually revoke an idle session to free up a seat, or purchase additional seats through the billing portal.
+
+Error Code: ACT-4004 (Offline Verification Failed)
+Symptom: A Node-Locked License suddenly deactivates and reverts to a 7-day trial mode.
+Cause: The machine's primary Network Interface Card (NIC) or motherboard was replaced, changing the physical MAC address that the license is tied to.
+Resolution Step 1: Contact Enterprise Support with the old MAC address and the new MAC address to perform a manual license migration.

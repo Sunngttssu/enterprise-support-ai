@@ -1,0 +1,345 @@
+[
+    {
+        "search_target": "iPhone 13",
+        "api_name": "Apple iPhone 13 128GB",
+        "sku": "194252707221",
+        "category": "Smartphones",
+        "price": "$699.00",
+        "specs": [
+            "Display: 6.1-inch Super Retina XDR",
+            "Chip: A15 Bionic",
+            "Camera: 12MP Dual",
+            "Connector: Lightning"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "iPhone 14 Pro Max",
+        "api_name": "Apple iPhone 14 Pro Max 256GB",
+        "sku": "194253380638",
+        "category": "Smartphones",
+        "price": "$1099.00",
+        "specs": [
+            "Display: 6.7-inch Super Retina XDR",
+            "Chip: A16 Bionic",
+            "Camera: 48MP Main",
+            "Feature: Dynamic Island"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "MacBook Pro 16-inch",
+        "api_name": "Apple MacBook Pro 16-inch (M1 Pro)",
+        "sku": "190199313247",
+        "category": "Laptops",
+        "price": "$2499.00",
+        "specs": [
+            "Display: 16.2-inch Liquid Retina XDR",
+            "RAM: 16GB Unified",
+            "Storage: 512GB SSD",
+            "Ports: 3x Thunderbolt 4, HDMI, SDXC"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Apple iPad 9th Gen",
+        "api_name": "Apple iPad 10.2-inch (9th Gen)",
+        "sku": "194252515666",
+        "category": "Tablets",
+        "price": "$329.00",
+        "specs": [
+            "Display: 10.2-inch Retina",
+            "Chip: A13 Bionic",
+            "Security: Touch ID",
+            "Connector: Lightning"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Apple Watch Series 7",
+        "api_name": "Apple Watch Series 7 (45mm)",
+        "sku": "194252585256",
+        "category": "Wearables",
+        "price": "$399.00",
+        "specs": [
+            "Display: Always-On Retina",
+            "Durability: IP6X Dust Resistant",
+            "Sensors: Blood Oxygen, ECG",
+            "Charging: Fast Charge USB-C"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Cisco IP Conference Phone 8832",
+        "api_name": "Cisco Unified IP Conference Phone 8832",
+        "sku": "882658865039",
+        "category": "Enterprise Voice",
+        "price": "$895.00",
+        "specs": [
+            "Coverage: 360-degree room coverage",
+            "Microphones: Daisy-chainable",
+            "Display: 3.9-inch color LCD",
+            "Network: 10/100 PoE"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Cisco Aironet 1540 Access Point",
+        "api_name": "Cisco Aironet 1542I Outdoor AP",
+        "sku": "889728005378",
+        "category": "Wireless Networking",
+        "price": "$650.00",
+        "specs": [
+            "Standard: 802.11ac Wave 2",
+            "Environment: Outdoor IP67",
+            "Antenna: Internal Semi-Omni",
+            "Throughput: Up to 867 Mbps"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Cisco Catalyst 9164 Wi-Fi 6E",
+        "api_name": "Cisco Catalyst 9164 Series AP",
+        "sku": "889728362617",
+        "category": "Wireless Networking",
+        "price": "$1200.00",
+        "specs": [
+            "Standard: Wi-Fi 6E (802.11ax)",
+            "Radios: Tri-band (2.4GHz, 5GHz, 6GHz)",
+            "Management: Cisco DNA Center / Meraki",
+            "Port: 2.5 Multigigabit Ethernet"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Cisco Webex Board 55",
+        "api_name": "Cisco Webex Board 55S",
+        "sku": "889728040621",
+        "category": "Collaboration Rooms",
+        "price": "$4990.00",
+        "specs": [
+            "Display: 55-inch 4K Touch",
+            "Camera: 4K UltraHD",
+            "Audio: 12-element microphone array",
+            "Input: HDMI, USB-C, Wireless Share"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Cisco Catalyst IW9165E Rugged",
+        "api_name": "Cisco Catalyst IW9165E Heavy Duty AP",
+        "sku": "889728394465",
+        "category": "Industrial Networking",
+        "price": "$1850.00",
+        "specs": [
+            "Environment: IP67 Ruggedized",
+            "Standard: Wi-Fi 6E",
+            "Use Case: Automated Guided Vehicles (AGV)",
+            "Ports: M12 Industrial Connectors"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Cisco Headset USB-C Adapter",
+        "api_name": "Cisco Headset USB-C Adapter",
+        "sku": "889728203002",
+        "category": "Accessories",
+        "price": "$45.00",
+        "specs": [
+            "Interface: USB-C to Quick Disconnect",
+            "Compatibility: Cisco 500 Series Headsets",
+            "Controls: Inline call controls"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Samsung Galaxy S22",
+        "api_name": "Samsung Galaxy S22 5G",
+        "sku": "887276625828",
+        "category": "Smartphones",
+        "price": "$799.00",
+        "specs": [
+            "Display: 6.1-inch Dynamic AMOLED 2X",
+            "Processor: Snapdragon 8 Gen 1",
+            "Camera: 50MP Wide, 3x Optical Zoom",
+            "Battery: 3700 mAh"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Samsung Galaxy S25 (SM-S931U)",
+        "api_name": "Samsung Galaxy S25 5G",
+        "sku": "887276813201",
+        "category": "Smartphones",
+        "price": "$849.00",
+        "specs": [
+            "Network: 5G Sub-6/mmWave",
+            "Charging: Super Fast Charging 2.0",
+            "Biometrics: Ultrasonic Fingerprint",
+            "Connector: USB Type-C"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Samsung Galaxy SmartTag2",
+        "api_name": "Samsung Galaxy SmartTag2 Tracker",
+        "sku": "887276785126",
+        "category": "IoT Accessories",
+        "price": "$29.99",
+        "specs": [
+            "Connectivity: Bluetooth 5.3, UWB",
+            "Battery Life: Up to 500 days",
+            "Water Resistance: IP67",
+            "Features: Compass View"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Samsung SmartThings Station Charger",
+        "api_name": "Samsung SmartThings Station 15W",
+        "sku": "887276711712",
+        "category": "Smart Home",
+        "price": "$59.99",
+        "specs": [
+            "Function 1: 15W Fast Wireless Charger",
+            "Function 2: SmartThings Hub (Matter/Thread)",
+            "Button: Programmable Smart Button"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Samsung Galaxy Book3 Pro",
+        "api_name": "Samsung Galaxy Book3 Pro 14-inch",
+        "sku": "887276735527",
+        "category": "Laptops",
+        "price": "$1449.00",
+        "specs": [
+            "Display: 14-inch AMOLED 3K (120Hz)",
+            "Processor: Intel Core i7 13th Gen",
+            "RAM: 16GB LPDDR5",
+            "Weight: 2.58 lbs"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Samsung Over-the-Range Microwave",
+        "api_name": "Samsung 2.1 cu. ft. Over-the-Range Microwave",
+        "sku": "887276816486",
+        "category": "Home Appliances",
+        "price": "$399.00",
+        "specs": [
+            "Capacity: 2.1 cubic feet",
+            "Ventilation: 400 CFM",
+            "Interior: Ceramic Enamel",
+            "Sensors: Sensor Cook Technology"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Sony DualShock 4 Controller",
+        "api_name": "Sony PlayStation DualShock 4",
+        "sku": "711719504335",
+        "category": "Gaming Accessories",
+        "price": "$64.99",
+        "specs": [
+            "Connectivity: Bluetooth",
+            "Features: Touchpad, Lightbar, Sixaxis",
+            "Ports: Micro-USB, 3.5mm Audio"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Sony PlayStation Vita",
+        "api_name": "Sony PlayStation Vita (Wi-Fi)",
+        "sku": "711719990152",
+        "category": "Gaming Consoles",
+        "price": "$199.99",
+        "specs": [
+            "Display: 5-inch OLED Touchscreen",
+            "Inputs: Dual Analog Sticks, Rear Touchpad",
+            "Media: PS Vita Game Cards"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Sony UWP-D11 Wireless Mic",
+        "api_name": "Sony UWP-D11 Integrated Digital Wireless Mic",
+        "sku": "027242878774",
+        "category": "Pro Audio",
+        "price": "$599.00",
+        "specs": [
+            "System: UHF Synthesized",
+            "Included: Bodypack transmitter & portable receiver",
+            "Feature: NFC Sync",
+            "Display: OLED"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Sony Wireless Noise Canceling Headset",
+        "api_name": "Sony WH-1000XM5 Wireless ANC",
+        "sku": "027242307137",
+        "category": "Audio",
+        "price": "$398.00",
+        "specs": [
+            "Noise Canceling: Dual Noise Sensor Tech",
+            "Battery: Up to 30 hours",
+            "Charging: 3 min charge for 3 hrs playback",
+            "Microphones: 8 mics for ANC and Calls"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Sony Soundbar",
+        "api_name": "Sony HT-S2000 3.1ch Soundbar",
+        "sku": "027242318621",
+        "category": "Home Theater",
+        "price": "$499.00",
+        "specs": [
+            "Channels: 3.1ch with built-in dual subwoofer",
+            "Audio Tech: Dolby Atmos, DTS:X",
+            "Connectivity: HDMI eARC, Bluetooth"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Tesla Wireless Phone Charger (WC6)",
+        "api_name": "Tesla Model 3/Y Wireless Phone Charger",
+        "sku": "1622353-00-A",
+        "category": "Automotive Accessories",
+        "price": "$125.00",
+        "specs": [
+            "Power: Up to 15W per phone",
+            "Capacity: Charges 2 phones simultaneously",
+            "Material: Alcantara finish",
+            "Compatibility: Model 3/Y Center Console"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Tesla Model 3/Y Key Fob",
+        "api_name": "Tesla Model 3/Y Key Fob",
+        "sku": "1541334-00-A",
+        "category": "Automotive Accessories",
+        "price": "$175.00",
+        "specs": [
+            "Connectivity: BLE / RFID",
+            "Features: Passive Entry Support",
+            "Controls: Frunk, Trunk, Lock/Unlock"
+        ],
+        "source": "Enterprise Catalog Cache"
+    },
+    {
+        "search_target": "Tesla QCA6234 Wi-Fi Module",
+        "api_name": "Tesla OEM QCA6234 WLAN/BT Module",
+        "sku": "QCA6234",
+        "category": "Automotive Telematics",
+        "price": "N/A (OEM Part)",
+        "specs": [
+            "Connectivity: Wi-Fi 802.11a/b/g/n, Bluetooth 4.0",
+            "Frequency: 2.4GHz & 5GHz",
+            "Interface: PCIe/USB"
+        ],
+        "source": "Enterprise Catalog Cache"
+    }
+]

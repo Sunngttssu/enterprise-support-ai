@@ -1,0 +1,22 @@
+DOCUMENT TITLE: Nexus Cloud API - Developer Troubleshooting Guide
+DOCUMENT ID: DOC-API-7742
+LAST UPDATED: March 2026
+
+1. PRODUCT OVERVIEW
+The Nexus Cloud API allows enterprise clients to integrate our LLM routing engines into their native applications. It requires a valid Bearer Token for authentication.
+
+2. API ERROR CODES
+Error Code: HTTP 429 (Too Many Requests)
+Symptom: API requests are rejected, and the response body returns "Rate Limit Exceeded."
+Cause: The client application has exceeded the allowed tokens-per-minute (TPM) quota for their current subscription tier.
+Resolution Step 1: Implement an exponential backoff algorithm in the client-side code.
+Resolution Step 2: If the workload requires higher throughput, the account admin must upgrade from the "Developer Tier" to the "Enterprise Tier" via the billing dashboard.
+
+Error Code: HTTP 401 (Unauthorized)
+Symptom: The API instantly rejects the connection before processing the payload.
+Cause: The API key is either expired, revoked, or missing the 'x-api-key' header.
+Resolution Step 1: Log into the Developer Console and navigate to Security Settings.
+Resolution Step 2: Generate a new API key. Note: Old keys are automatically revoked 24 hours after a new key is generated.
+
+3. COMPATIBILITY
+The v2.0 API endpoint is fully compatible with Python 3.9+ and Node.js v18+. It drops support for legacy Python 2.7 environments.
