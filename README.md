@@ -520,4 +520,3 @@ For collaboration inquiries or questions, please open an [Issue](../../issues) o
 **Built with 🧠 Knowledge Graphs, 🤖 Local LLMs, and ☕ Way Too Much Coffee.**
 
 </div>
-]]>
