@@ -30,8 +30,8 @@
 
 - [Key Features](#-key-features)
 - [Architecture](#-architecture)
-- [Multi-Agent Pipeline Deep Dive](#-multi-agent-pipeline-deep-dive)
 - [Datasets & Knowledge Graph Mapping](#-datasets--knowledge-graph-mapping)
+- [Multi-Agent Pipeline Deep Dive](#-multi-agent-pipeline-deep-dive)
 - [Prerequisites](#-prerequisites)
 - [Installation](#-installation)
 - [Execution Guide](#-execution-guide)
