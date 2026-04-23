@@ -1,7 +1,10 @@
+import { memo } from 'react';
 import { Cpu } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
-export default function Header({ isOnline }) {
+// memo: Header only re-renders when isOnline flips, not on every
+// parent state change (e.g., session updates, typing, messages).
+export default memo(function Header({ isOnline }) {
   return (
     <header
       style={{
@@ -77,4 +80,4 @@ export default function Header({ isOnline }) {
       </div>
     </header>
   );
-}
+});

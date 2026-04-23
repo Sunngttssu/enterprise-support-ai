@@ -1,5 +1,4 @@
-import { useEffect, useRef, useId } from "react";
-import { animate, useMotionValue } from "framer-motion";
+import { useId } from "react";
 
 function mapRange(value, fromLow, fromHigh, toLow, toHigh) {
   if (fromLow === fromHigh) {
@@ -23,40 +22,12 @@ export default function RuixenBackground({ children }) {
 
   const id = useInstanceId();
   const animationEnabled = animation && animation.scale > 0;
-  const feColorMatrixRef = useRef(null);
-  const hueRotateMotionValue = useMotionValue(180);
-  const hueRotateAnimation = useRef(null);
 
   const displacementScale = animation ? mapRange(animation.scale, 1, 100, 20, 100) : 0;
-  const animationDuration = animation ? mapRange(animation.speed, 1, 100, 1000, 50) : 1;
-
-  useEffect(() => {
-    if (feColorMatrixRef.current && animationEnabled) {
-      if (hueRotateAnimation.current) {
-        hueRotateAnimation.current.stop();
-      }
-      hueRotateMotionValue.set(0);
-      hueRotateAnimation.current = animate(hueRotateMotionValue, 360, {
-        duration: animationDuration / 25,
-        repeat: Infinity,
-        repeatType: "loop",
-        repeatDelay: 0,
-        ease: "linear",
-        delay: 0,
-        onUpdate: (value) => {
-          if (feColorMatrixRef.current) {
-            feColorMatrixRef.current.setAttribute("values", String(value));
-          }
-        },
-      });
-
-      return () => {
-        if (hueRotateAnimation.current) {
-          hueRotateAnimation.current.stop();
-        }
-      };
-    }
-  }, [animationEnabled, animationDuration, hueRotateMotionValue]);
+  // Duration in seconds for the CSS animation (speed 90 → ~1.44s per revolution)
+  const animationDurationSec = animation
+    ? mapRange(animation.speed, 1, 100, 40, 1.5)
+    : 1;
 
   return (
     <div
@@ -64,15 +35,30 @@ export default function RuixenBackground({ children }) {
         position: "relative",
         width: "100%",
         height: "100%",
-        backgroundColor: "var(--bg-glass-heavy)", // Adapts to theme (white in light, black in dark loosely)
+        backgroundColor: "var(--bg-glass-heavy)",
         overflow: "hidden",
       }}
     >
+      {/*
+        Scoped CSS keyframe: rotates the hue on the SVG feColorMatrix
+        purely via CSS — zero JS thread involvement at 60fps.
+        The unique `id` scopes this so multiple instances don't collide.
+      */}
+      {animationEnabled && (
+        <style>{`
+          @keyframes hueRotate-${id} {
+            from { values: 0; }
+            to   { values: 360; }
+          }
+          #feHueRotate-${id} {
+            animation: hueRotate-${id} ${animationDurationSec}s linear infinite;
+          }
+        `}</style>
+      )}
       <div
         style={{
           position: "absolute",
           inset: -displacementScale,
-          /* Restored blur(4px) to make the displacement actually render soft ethereal shadows! */
           filter: animationEnabled ? `url(#${id}) blur(4px)` : "none",
           zIndex: 0,
         }}
@@ -94,11 +80,16 @@ export default function RuixenBackground({ children }) {
                   seed="0"
                   type="turbulence"
                 />
+                {/*
+                  id="feHueRotate-${id}" is the hook for the CSS animation above.
+                  CSS animates the SVG `values` attribute directly on the
+                  compositor thread — no JS frame callbacks needed.
+                */}
                 <feColorMatrix
-                  ref={feColorMatrixRef}
+                  id={`feHueRotate-${id}`}
                   in="undulation"
                   type="hueRotate"
-                  values="180"
+                  values="0"
                 />
                 <feColorMatrix
                   in="dist"

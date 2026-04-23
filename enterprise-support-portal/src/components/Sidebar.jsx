@@ -1,9 +1,22 @@
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { MessageSquare, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import GlowingButton from './GlowingButton';
 
 export default function Sidebar({ sessions, activeSession, onNewChat, onSelectSession, onDeleteSession }) {
   const [collapsed, setCollapsed] = useState(false);
+
+  // Stable handlers: read session id from data-id attribute so no
+  // inline arrow function is created per session item per render.
+  const handleSelect = useCallback((e) => {
+    const id = e.currentTarget.closest('[data-session-id]')?.dataset.sessionId;
+    if (id) onSelectSession(id);
+  }, [onSelectSession]);
+
+  const handleDelete = useCallback((e) => {
+    e.stopPropagation();
+    const id = e.currentTarget.closest('[data-session-id]')?.dataset.sessionId;
+    if (id) onDeleteSession(id);
+  }, [onDeleteSession]);
 
   return (
     <aside
@@ -87,8 +100,8 @@ export default function Sidebar({ sessions, activeSession, onNewChat, onSelectSe
                 key={session.id}
                 session={session}
                 isActive={session.id === activeSession}
-                onSelect={() => onSelectSession(session.id)}
-                onDelete={(e) => { e.stopPropagation(); onDeleteSession(session.id); }}
+                onSelect={handleSelect}
+                onDelete={handleDelete}
               />
             ))
           )}
@@ -98,11 +111,15 @@ export default function Sidebar({ sessions, activeSession, onNewChat, onSelectSe
   );
 }
 
-function SessionItem({ session, isActive, onSelect, onDelete }) {
+// Memoized: only re-renders when this session's title, active state,
+// or hover state changes. Stable onSelect/onDelete refs ensure the
+// memo comparator never fails due to new function references.
+const SessionItem = memo(function SessionItem({ session, isActive, onSelect, onDelete }) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
+      data-session-id={session.id}
       onClick={onSelect}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -125,6 +142,7 @@ function SessionItem({ session, isActive, onSelect, onDelete }) {
       </span>
       {hovered && (
         <button
+          data-session-id={session.id}
           onClick={onDelete}
           style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
@@ -135,4 +153,4 @@ function SessionItem({ session, isActive, onSelect, onDelete }) {
       )}
     </div>
   );
-}
+});

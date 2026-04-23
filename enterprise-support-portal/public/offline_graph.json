@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "error_code": "SYS-ERR-0041",
+    "product": "TitanBook Pro 15",
+    "symptoms": "Laptop shuts down unexpectedly during heavy workloads. Fan spins loudly before shutdown. System feels extremely hot on the underside.",
+    "root_cause": "Thermal throttling triggered by dust-blocked heat pipe. CPU junction temperature exceeds 95°C sustained threshold.",
+    "resolution": "1. Power off and unplug the device.\n2. Use compressed air to clean all ventilation grills (bottom and side).\n3. If shutdown recurs, open the bottom panel and re-apply MX-4 thermal paste to the CPU die.\n4. In BIOS, set Fan Mode to 'Max Performance' (Advanced > Thermal).\n5. If the issue persists, escalate to Hardware Desk with ticket prefix IT-HW.",
+    "severity": "High",
+    "tags": ["thermal", "shutdown", "hardware", "TitanBook", "fan", "overheat"]
+  },
+  {
+    "id": 2,
+    "error_code": "SYS-ERR-0088",
+    "product": "Nexus Workstation 8",
+    "symptoms": "USB peripherals (keyboard, mouse, external drive) randomly disconnect and reconnect. Device Manager shows 'Unknown USB Device (Port Reset Failed)' for the affected port.",
+    "root_cause": "Corrupted USB selective suspend policy or faulty USB 3.1 host controller driver (version 3.4.x conflict on Windows 11 23H2).",
+    "resolution": "1. Open Device Manager → Universal Serial Bus Controllers.\n2. Right-click each USB Root Hub → Properties → Power Management → uncheck 'Allow the computer to turn off this device to save power'.\n3. Update the USB host controller driver: run 'winget upgrade --id Intel.USB3xHCIDriver'.\n4. If unresolved, disable USB Selective Suspend: Control Panel → Power Options → Change Plan Settings → Change Advanced → USB Settings → USB Selective Suspend → Disabled.\n5. Reboot and test all ports.",
+    "severity": "Medium",
+    "tags": ["USB", "disconnect", "driver", "Nexus", "Workstation", "peripheral", "port reset"]
+  },
+  {
+    "id": 3,
+    "error_code": "ACT-7721",
+    "product": "ActiveSuite License Manager",
+    "symptoms": "Application displays 'License validation failed — server unreachable (ACT-7721)' at startup. Occurs after VPN or proxy change. Offline grace period countdown visible in the tray.",
+    "root_cause": "ActiveSuite License Server endpoint (licensing.activesuite.corp) is blocked by the new Zscaler proxy policy or DNS is resolving to the wrong IP after a recent network migration.",
+    "resolution": "1. Verify DNS resolution: run 'nslookup licensing.activesuite.corp' — expected IP: 10.14.2.55.\n2. If DNS is wrong, add a manual host entry: C:\\Windows\\System32\\drivers\\etc\\hosts → '10.14.2.55  licensing.activesuite.corp'.\n3. Check Zscaler policy: ensure 'activesuite.corp' is in the SSL Inspection bypass list.\n4. Clear the license cache: delete 'C:\\ProgramData\\ActiveSuite\\.license_cache'.\n5. Restart the ActiveSuite License Agent service (services.msc → ActiveSuiteLicenseAgent → Restart).",
+    "severity": "Critical",
+    "tags": ["license", "ACT-7721", "ActiveSuite", "VPN", "proxy", "DNS", "Zscaler", "activation"]
+  },
+  {
+    "id": 4,
+    "error_code": "SYS-ERR-NET-503",
+    "product": "Nexus Connect Enterprise NIC",
+    "symptoms": "Intermittent 503 errors on internal web applications. Network icon shows connected but pages time out. Ping to 10.0.0.1 succeeds but ping to 10.0.0.100 (app server) fails. Affects only wired connection; Wi-Fi works fine.",
+    "root_cause": "NIC duplex mismatch — workstation NIC is negotiating at 100 Mbps half-duplex against a Gigabit switch port, causing heavy packet collision and retransmission which manifests as 503s.",
+    "resolution": "1. Open Device Manager → Network Adapters → Nexus Connect NIC → Properties → Advanced Tab.\n2. Set 'Speed & Duplex' to '1.0 Gbps Full Duplex' (do not leave on Auto-Negotiation).\n3. Flush ARP and DNS caches: run 'arp -d *' and 'ipconfig /flushdns'.\n4. On the switch side, request Network Operations to set the port to 'speed 1000, duplex full, no shutdown'.\n5. Confirm with: 'ethtool eth0 | grep -i duplex' — expected 'Full'.",
+    "severity": "Medium",
+    "tags": ["network", "503", "NIC", "duplex", "Nexus", "wired", "LAN", "packet loss", "502", "timeout"]
+  }
+]

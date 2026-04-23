@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, startTransition } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
@@ -83,13 +83,20 @@ export default function App() {
     if (!activeSessionId) {
       const id = genId();
       const newSession = { id, title: text.slice(0, 38), messages: [] };
-      setSessions((prev) => {
-        const updated = [newSession, ...prev];
-        saveSessions(updated);
-        return updated;
+      // Wrap heavy session-creation + localStorage write in startTransition
+      // so the click is acknowledged instantly and React treats the
+      // session state update as a non-urgent (interruptible) render.
+      startTransition(() => {
+        setSessions((prev) => {
+          const updated = [newSession, ...prev];
+          saveSessions(updated);
+          return updated;
+        });
+        setActiveSessionId(id);
       });
-      setActiveSessionId(id);
     }
+    // sendMessage is intentionally outside startTransition — it must
+    // run immediately so the network request starts without delay.
     sendMessage(text);
   }, [activeSessionId, sendMessage]);
 

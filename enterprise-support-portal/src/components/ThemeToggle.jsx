@@ -1,8 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import { flushSync } from 'react-dom';
 import { Sun, Moon } from 'lucide-react';
 
-export default function ThemeToggle() {
+// memo: ThemeToggle is self-contained — no props, so it never needs
+// to re-render due to parent state changes.
+export default memo(function ThemeToggle() {
   const [isDark, setIsDark] = useState(true);
   const buttonRef = useRef(null);
 
@@ -89,4 +91,4 @@ export default function ThemeToggle() {
       {isDark ? <Sun size={15} strokeWidth={1.5} /> : <Moon size={15} strokeWidth={1.5} />}
     </button>
   );
-}
+});

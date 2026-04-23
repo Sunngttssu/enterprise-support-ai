@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { Bot, User, Copy, Check } from 'lucide-react';
 import TypingIndicator from './TypingIndicator';
 
@@ -57,15 +57,18 @@ function parseInline(text) {
   });
 }
 
-export default function ChatMessage({ message }) {
+// ---------------------------------------------------------------------------
+// Performance: useCallback keeps handleCopy reference stable across renders.
+// ---------------------------------------------------------------------------
+export default memo(function ChatMessage({ message }) {
   const isUser = message.role === 'user';
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     await navigator.clipboard.writeText(message.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
+  }, [message.content]);
 
   const isStreaming = message.isStreaming && !message.content;
   const showContent = message.content || isStreaming;
@@ -160,4 +163,14 @@ export default function ChatMessage({ message }) {
       </div>
     </div>
   );
-}
+},
+// ---------------------------------------------------------------------------
+// Custom comparator for React.memo
+// Only re-render this bubble when the message's meaningful fields change.
+// This prevents the entire message list re-rendering when the user types.
+// ---------------------------------------------------------------------------
+(prevProps, nextProps) =>
+  prevProps.message.content    === nextProps.message.content    &&
+  prevProps.message.isStreaming === nextProps.message.isStreaming &&
+  prevProps.message.isError    === nextProps.message.isError
+);

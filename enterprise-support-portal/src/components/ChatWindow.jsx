@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import ChatMessage from './ChatMessage';
 import { Bot, Zap, Shield, Clock } from 'lucide-react';
 
@@ -73,7 +73,9 @@ export default function ChatWindow({ messages, isStreaming }) {
   );
 }
 
-function WelcomeScreen() {
+// Memoized: WelcomeScreen has no props and never needs to re-render after
+// the first message arrives, so memo() makes it completely skip-able.
+const WelcomeScreen = memo(function WelcomeScreen() {
   return (
     <div
       className="animate-fade-in"
@@ -142,4 +144,4 @@ function WelcomeScreen() {
       </div>
     </div>
   );
-}
+});

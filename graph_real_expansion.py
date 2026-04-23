@@ -1,11 +1,15 @@
 import os
 import json
+from dotenv import load_dotenv
 from langchain_neo4j import Neo4jGraph
 
+# Load the secrets from the .env file
+load_dotenv()
+
 # --- 1. CONNECT TO YOUR CLOUD DATABASE ---
-os.environ["NEO4J_URI"] = "neo4j+s://<your-aura-instance-id>.databases.neo4j.io"
-os.environ["NEO4J_USERNAME"] = "<your-username>"
-os.environ["NEO4J_PASSWORD"] = "<your-password>"
+os.environ["NEO4J_URI"] = os.getenv("NEO4J_URI_EXPANSION")
+os.environ["NEO4J_USERNAME"] = os.getenv("NEO4J_USERNAME_EXPANSION")
+os.environ["NEO4J_PASSWORD"] = os.getenv("NEO4J_PASSWORD_EXPANSION")
 
 try:
     graph = Neo4jGraph()

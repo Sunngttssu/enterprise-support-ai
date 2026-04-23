@@ -1,12 +1,16 @@
 import os
 import ollama
+from dotenv import load_dotenv
 from neo4j import GraphDatabase
+
+# Load the secrets from the .env file
+load_dotenv()
 
 # ==========================================
 # 1. NEO4J AURA CONNECTION SETTINGS
 # ==========================================
-URI  = "neo4j+s://<your-aura-instance-id>.databases.neo4j.io"
-AUTH = ("<your-username>", "<your-password>")
+URI  = os.getenv("NEO4J_URI_MAIN")
+AUTH = (os.getenv("NEO4J_USERNAME_MAIN"), os.getenv("NEO4J_PASSWORD_MAIN"))
 OLLAMA_MODEL = "hf.co/Sunngttssu/enterprise-support-bot"
 
 # Initialize the Neo4j Driver

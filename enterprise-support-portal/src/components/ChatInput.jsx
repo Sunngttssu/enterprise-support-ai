@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Sparkles, Square } from 'lucide-react';
 
 const SUGGESTIONS = [
@@ -19,20 +19,29 @@ export default function ChatInput({ onSend, onStop, isStreaming, disabled }) {
     }
   }, [text]);
 
-  const handleSubmit = (e) => {
+  // Stable submit handler — only recreated if onSend/isStreaming identity changes.
+  const handleSubmit = useCallback((e) => {
     e.preventDefault();
     if (text.trim() && !isStreaming) {
       onSend(text.trim());
       setText('');
     }
-  };
+  }, [text, isStreaming, onSend]);
 
-  const handleKeyDown = (e) => {
+  // Single stable handler for ALL suggestion chips.
+  // Reads which suggestion was clicked via the data-suggestion attribute
+  // so we don't create a new arrow function per chip per render.
+  const handleSuggestionClick = useCallback((e) => {
+    const suggestion = e.currentTarget.dataset.suggestion;
+    if (suggestion) onSend(suggestion);
+  }, [onSend]);
+
+  const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
-  };
+  }, [handleSubmit]);
 
   return (
     <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '0 20px' }}>
@@ -49,7 +58,8 @@ export default function ChatInput({ onSend, onStop, isStreaming, disabled }) {
         {SUGGESTIONS.map((suggestion) => (
           <button
             key={suggestion}
-            onClick={() => onSend(suggestion)}
+            data-suggestion={suggestion}
+            onClick={handleSuggestionClick}
             disabled={disabled || isStreaming}
             style={{
               padding: '6px 14px',
