@@ -205,18 +205,26 @@ async def chat_endpoint(request: ChatRequest):
                     final_text = "Hi there! I am ready to help. What enterprise product or technical issue can I assist you with?"
             else:
                 # ------------------------------------------------------------------
-                # TAVILY WEB AGENT (Fallback)
+                # TAVILY WEB AGENT (Fallback) - UPDATED FOR MODEL FIDELITY
                 # ------------------------------------------------------------------
                 print("🌐 ROUTER: Intent is technical, but local graph is empty. Triggering Tavily Web Search...")
                 try:
                     search_result = tavily_client.search(query=request.message, search_depth="basic")
                     web_context = "\n".join([f"- {result['content']}" for result in search_result['results']])
                     
+                    # --- THIS IS THE UPDATED PROMPT ---
                     draft_prompt = f"""
-                    You are an IT Expert. The user's issue was not in the internal database. 
-                    Answer their question strictly based on this live web data: 
-                    {web_context}
+                    You are a highly precise IT Support Expert. 
+                    The user is asking about: {request.message}
+
+                    Answer strictly using this web data: {web_context}
+
+                    STRICT RULE: Ensure you address the EXACT device mentioned by the user. 
+                    If the user asks about an 'iPhone 15', do not refer to it as 'iPhone 15 Pro' 
+                    even if the search results mention the Pro model. Standardize the 
+                    advice to the user's specific request.
                     """
+                    # ----------------------------------
                     
                     draft_completion = groq_client.chat.completions.create(
                         model=GROQ_MODEL,
