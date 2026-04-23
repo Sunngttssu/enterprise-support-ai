@@ -3,7 +3,10 @@
  * Fetches responses from the new Python FastAPI backend.
  */
 
-const BACKEND_URL = 'http://127.0.0.1:8000';
+// Reads from .env → VITE_API_BASE_URL.
+// Falls back to localhost so `npm run dev` still works without a .env file.
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
+
 
 /**
  * Checks if backend is reachable.

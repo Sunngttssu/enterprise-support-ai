@@ -140,7 +140,7 @@ export function useChat() {
     } catch (err) {
       if (err.name !== 'AbortError') {
         const errMsg = err.message.includes('fetch')
-          ? '⚠️ Could not reach backend. Make sure it is running on http://127.0.0.1:8000.'
+          ? `⚠️ Could not reach the GraphSentinel backend. Please try again in a moment.`
           : `⚠️ ${err.message}`;
         setError(errMsg);
         setMessages((prev) =>

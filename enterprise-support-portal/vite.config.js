@@ -45,9 +45,9 @@ export default defineConfig({
 
       // Web App Manifest
       manifest: {
-        name: 'Enterprise AI Support',
-        short_name: 'EntSupport',
-        description: 'Stateful Agentic GraphRAG — Enterprise Support Portal',
+        name: 'GraphSentinel',
+        short_name: 'GraphSentinel',
+        description: 'GraphSentinel — AI powered by knowledge graphs for enterprise support',
         display: 'standalone',
         start_url: '/',
         scope: '/',

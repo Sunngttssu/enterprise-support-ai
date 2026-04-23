@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Cpu } from 'lucide-react';
+import { Network } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 // memo: Header only re-renders when isOnline flips, not on every
@@ -33,18 +33,17 @@ export default memo(function Header({ isOnline }) {
             border: '1px solid var(--border-medium)'
           }}
         >
-          <Cpu size={18} color="var(--text-primary)" strokeWidth={2} />
+          <Network size={18} color="var(--text-primary)" strokeWidth={2} />
         </div>
         <h1
           style={{
             fontSize: '17px',
             fontWeight: 500,
             color: 'var(--text-primary)',
-            letterSpacing: '0.04em', 
-            textTransform: 'uppercase'
+            letterSpacing: '0.02em',
           }}
         >
-          Enterprise
+          GraphSentinel
         </h1>
       </div>
 

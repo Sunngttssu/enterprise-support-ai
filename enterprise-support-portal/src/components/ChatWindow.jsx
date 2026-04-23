@@ -112,7 +112,7 @@ const WelcomeScreen = memo(function WelcomeScreen() {
             How can I help you today?
           </h2>
           <p style={{ fontSize: '15px', fontWeight: 300, color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto', lineHeight: 1.6, letterSpacing: '0.01em' }}>
-            Enterprise AI powered by Ollama. Ask about orders, policies, or technical support.
+            GraphSentinel — AI powered by knowledge graphs. Ask about orders, policies, or technical support.
           </p>
         </div>
       </div>
