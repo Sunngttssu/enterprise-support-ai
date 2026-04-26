@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from groq import Groq
 from tavily import TavilyClient
 from neo4j import GraphDatabase
+from openai import OpenAI
 from dotenv import load_dotenv
+import datetime
+import pytz
 import json
 import re
 import os
@@ -13,18 +15,22 @@ import os
 load_dotenv()
 
 # ==========================================
-# 1. NEO4J AURA + GROQ CONNECTION SETTINGS
+# 1. API CONNECTIONS & CONFIGURATION
 # ==========================================
 URI  = os.getenv("NEO4J_URI_MAIN")
 AUTH = (os.getenv("NEO4J_USERNAME_MAIN"), os.getenv("NEO4J_PASSWORD_MAIN"))
-GROQ_MODEL = "llama-3.1-8b-instant"
 
-# Initialize the clients clients
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Initialize clients
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
-
 driver = GraphDatabase.driver(URI, auth=AUTH)
-app = FastAPI(title="Enterprise Support API - Stateful Agentic Loop (Groq)")
+
+# Configure the Universal OpenAI Client (Pointed at OpenRouter)
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+)
+
+app = FastAPI(title="Enterprise Support API - Universal Aggregator Architecture")
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,6 +43,122 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     message: str
     session_id: str = "default_session"
+
+# ==========================================
+# 2. REAL-TIME IST CLOCK UTILITY
+# ==========================================
+def get_ist_time() -> str:
+    """Returns the current time in Indian Standard Time (IST), formatted for the LLM prompt."""
+    ist_zone = pytz.timezone("Asia/Kolkata")
+    now_ist = datetime.datetime.now(ist_zone)
+    # Using standard %I to ensure it works on both Windows (local) and Linux (Render)
+    return now_ist.strftime("%A, %B %d, %Y, %I:%M %p")
+
+
+# ==========================================
+# 3. PERSISTENT NEO4J MEMORY (RENDER-SAFE)
+# ==========================================
+def save_to_memory(session_id: str, role: str, content: str) -> None:
+    """
+    Persists a single conversation message into Neo4j.
+    Graph model: (:Session {id})-[:HAS_MESSAGE]->(:Message {role, content, timestamp})
+    Messages are chained via [:NEXT] for ordered retrieval.
+    """
+    ist_zone = pytz.timezone("Asia/Kolkata")
+    timestamp = datetime.datetime.now(ist_zone).isoformat()
+
+    cypher = """
+    MERGE (s:Session {id: $session_id})
+    CREATE (m:Message {role: $role, content: $content, timestamp: $timestamp})
+    CREATE (s)-[:HAS_MESSAGE]->(m)
+    WITH s, m
+    OPTIONAL MATCH (s)-[:HAS_MESSAGE]->(prev:Message)
+    WHERE prev <> m
+    WITH s, m, prev ORDER BY prev.timestamp DESC LIMIT 1
+    FOREACH (_ IN CASE WHEN prev IS NOT NULL THEN [1] ELSE [] END |
+        CREATE (prev)-[:NEXT]->(m)
+    )
+    """
+    try:
+        with driver.session() as db_session:
+            db_session.run(
+                cypher,
+                session_id=session_id,
+                role=role,
+                content=content,
+                timestamp=timestamp,
+            )
+    except Exception as e:
+        print(f"⚠️ Neo4j Memory Write Failed: {e}")
+
+
+def get_recent_memory(session_id: str) -> str:
+    """
+    Fetches the last 4 conversation turns (8 messages) from Neo4j for the given session.
+    Returns a formatted string for direct injection into the LLM system prompt.
+    """
+    cypher = """
+    MATCH (s:Session {id: $session_id})-[:HAS_MESSAGE]->(m:Message)
+    RETURN m.role AS role, m.content AS content, m.timestamp AS timestamp
+    ORDER BY m.timestamp DESC
+    LIMIT 8
+    """
+    try:
+        with driver.session() as db_session:
+            results = db_session.run(cypher, session_id=session_id)
+            records = list(results)
+
+        if not records:
+            return "No prior conversation history."
+
+        # Reverse to get chronological order (oldest → newest)
+        records.reverse()
+        history_lines = [f"{rec['role'].upper()}: {rec['content']}" for rec in records]
+        return "\n".join(history_lines)
+
+    except Exception as e:
+        print(f"⚠️ Neo4j Memory Read Failed: {e}")
+        return "History temporarily unavailable."
+
+
+# ==========================================
+# 4. MULTI-MODEL FALLBACK ROUTER (OPENROUTER) — UNTOUCHED
+# ==========================================
+def call_llm(system_prompt: str, user_message: str = "", is_json: bool = False) -> str:
+    """Attempts the OpenRouter dynamic free pool, hot-swaps to Llama 3.1 if it fails."""
+
+    messages = [{"role": "system", "content": system_prompt}]
+    if user_message:
+        messages.append({"role": "user", "content": user_message})
+
+    # --- ATTEMPT 1: OpenRouter Dynamic Free Pool ---
+    try:
+        response = client.chat.completions.create(
+            model="openrouter/free",  # <-- The magic auto-router endpoint
+            messages=messages,
+            temperature=0.1,
+        )
+        return response.choices[0].message.content
+
+    except Exception as e1:
+        print(f"⚠️ Primary Pool Failed ({e1}). Hot-swapping to Fallback Model...")
+
+        # --- ATTEMPT 2: Fallback Free Model (Meta Llama 3.1) ---
+        try:
+            response = client.chat.completions.create(
+                model="meta-llama/llama-3.1-8b-instruct:free",  # <-- Corrected version ID
+                messages=messages,
+                temperature=0.1,
+            )
+            return response.choices[0].message.content
+
+        except Exception as e2:
+            print(f"❌ CRITICAL: Fallback LLM also failed: {e2}")
+            if is_json:
+                # Provide an empty JSON structure so the extraction step doesn't crash
+                return '{"keywords": [], "final": "Error connecting to AI providers."}'
+            return "I am currently experiencing network latency across all AI models. Please try your request again."
+
 
 # ==========================================
 # MOCK ENTERPRISE TICKETING SYSTEM
@@ -52,10 +174,8 @@ MOCK_TICKETS: dict[str, dict] = {
 TICKET_PATTERN = re.compile(r'\bIT-\d+\b', re.IGNORECASE)
 
 def lookup_ticket(ticket_id: str) -> str | None:
-    """Return a formatted ticket status string, or None if not found."""
     ticket = MOCK_TICKETS.get(ticket_id.upper())
-    if not ticket:
-        return None
+    if not ticket: return None
     return (
         f"🎫 **Ticket {ticket_id.upper()}**\n"
         f"- **Status:** {ticket['status']}\n"
@@ -63,28 +183,6 @@ def lookup_ticket(ticket_id: str) -> str | None:
         f"- **ETA / Resolution:** {ticket['eta']}"
     )
 
-# ==========================================
-# STICKY MEMORY BANK
-# ==========================================
-session_memory: dict = {}
-MAX_HISTORY_TURNS = 4
-
-def get_chat_history(session_id: str) -> str:
-    if session_id not in session_memory or not session_memory[session_id]["history"]:
-        return "No previous conversation."
-    history_lines = []
-    for turn in session_memory[session_id]["history"]:
-        history_lines.append(f"{turn['role'].capitalize()}: {turn['content']}")
-    return "\n".join(history_lines)
-
-def add_to_memory(session_id: str, role: str, content: str, context: str = ""):
-    if session_id not in session_memory:
-        session_memory[session_id] = {"history": [], "last_context": ""}
-    session_memory[session_id]["history"].append({"role": role, "content": content})
-    if context:
-        session_memory[session_id]["last_context"] = context
-    if len(session_memory[session_id]["history"]) > MAX_HISTORY_TURNS:
-        session_memory[session_id]["history"] = session_memory[session_id]["history"][-MAX_HISTORY_TURNS:]
 
 # ==========================================
 # AGENT 1: REGEX-ASSISTED KEYWORD EXTRACTOR
@@ -92,24 +190,20 @@ def add_to_memory(session_id: str, role: str, content: str, context: str = ""):
 def extract_keywords(user_message: str) -> list:
     print("🤖 AGENT 1: Extracting search entities (Hybrid Mode)...")
 
-    # Deterministic regex — guarantees we never miss a product or error code
     regex_pattern = r'(SYS-ERR-[0-9a-zA-Z]+|ACT-[0-9]+|HTTP \d+|TitanBook|Nexus|Floating|Workstation)'
     regex_keywords = [match.lower().strip() for match in re.findall(regex_pattern, user_message, re.IGNORECASE)]
 
-    # Groq LLM extraction for dynamic semantic context
     prompt = f"""
     Extract technical nouns or specific hardware components from this message: "{user_message}"
     Do NOT extract generic words like 'system', 'software', 'broken', 'cake', 'script'.
     Respond STRICTLY in JSON format. Example: {{"keywords": ["battery", "sensor"]}}
     """
+
+    response_text = call_llm(system_prompt="You are a JSON keyword extractor.", user_message=prompt, is_json=True)
     try:
-        response = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            response_format={"type": "json_object"},
-        )
-        data = json.loads(response.choices[0].message.content)
+        # Clean potential markdown from response
+        clean_text = response_text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_text)
         llm_keywords = [str(k).lower().strip() for k in data.get("keywords", [])]
     except Exception:
         llm_keywords = []
@@ -118,12 +212,12 @@ def extract_keywords(user_message: str) -> list:
     print(f"   -> Final Keywords: {final_keywords}")
     return final_keywords
 
+
 # ==========================================
 # NEO4J GRAPH RETRIEVAL
 # ==========================================
 def retrieve_graph_context(keywords: list) -> str:
-    if not keywords:
-        return ""
+    if not keywords: return ""
     query = """
     MATCH (start:Entity)
     WHERE any(kw IN $kws WHERE toLower(start.name) CONTAINS kw)
@@ -140,6 +234,7 @@ def retrieve_graph_context(keywords: list) -> str:
             context_sentences.append(sentence.replace("_", " "))
     return " | ".join(context_sentences)
 
+
 # ==========================================
 # MAIN AGENTIC PIPELINE
 # ==========================================
@@ -147,106 +242,99 @@ def retrieve_graph_context(keywords: list) -> str:
 async def health_check():
     return {"status": "ok"}
 
+
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
     session_id = request.session_id
     print(f"\n📩 NEW SESSION [{session_id[-4:]}]: {request.message}")
 
-    add_to_memory(session_id, "user", request.message)
+    # --- Gather live context before any logic ---
+    live_time = get_ist_time()
+    recent_memory = get_recent_memory(session_id)
 
-    # ------------------------------------------------------------------
-    # AGENT 1.5 — DETERMINISTIC ROUTER (runs BEFORE any LLM/graph call)
-    # Priority: Ticket lookup → graph context → intent routing → LLM
-    # ------------------------------------------------------------------
+    # Persist the incoming user message to Neo4j
+    save_to_memory(session_id, "user", request.message)
+
+    # ---- AGENT 1.5: Ticket Router ----
     ticket_matches = TICKET_PATTERN.findall(request.message)
     if ticket_matches:
-        # Handle the first ticket found in the message
         ticket_id = ticket_matches[0].upper()
-        print(f"🎫 AGENT 1.5 ROUTER: Ticket number detected — {ticket_id} (bypassing LLM)")
+        print(f"🎫 AGENT 1.5 ROUTER: Ticket number detected — {ticket_id}")
         ticket_response = lookup_ticket(ticket_id)
         if ticket_response:
-            add_to_memory(session_id, "ai", ticket_response)
+            save_to_memory(session_id, "ai", ticket_response)
             return {"response": ticket_response}
         else:
-            not_found = (
-                f"⚠️ Ticket **{ticket_id}** was not found in the enterprise system. "
-                f"Please verify the ticket number or contact the IT Helpdesk for assistance."
-            )
-            add_to_memory(session_id, "ai", not_found)
+            not_found = f"⚠️ Ticket **{ticket_id}** was not found in the enterprise system."
+            save_to_memory(session_id, "ai", not_found)
             return {"response": not_found}
 
     try:
         keywords = extract_keywords(request.message)
         graph_context = retrieve_graph_context(keywords)
 
-        if not graph_context and session_id in session_memory and session_memory[session_id]["last_context"]:
-            graph_context = session_memory[session_id]["last_context"]
+        # ---- BASE SYSTEM PROMPT with live IST clock + Neo4j history ----
+        base_system_prompt = f"""
+You are an Enterprise AI connected to a live clock. It is currently {live_time}.
 
-        # ------------------------------------------------------------------
-        # STEP 3.1: DETERMINISTIC INTENT ROUTER & WEB FALLBACK AGENT
-        # ------------------------------------------------------------------
+If the user initiates a conversation, greet them accurately based on the 24-hour clock:
+- Morning:   05:00 – 11:59
+- Afternoon: 12:00 – 16:59
+- Evening:   17:00 – 04:59
+
+You have access to the user's past history:
+{recent_memory}
+
+Seamlessly weave past context into your answers without saying 'According to your history'.
+"""
+
+        # ---- No graph context → LLM handles intent (greetings + web fallback) ----
         if not graph_context:
-            print("⚠️ No graph data found. Routing intent (Python Mode)...")
-            msg_lower = request.message.lower()
+            print("⚠️ No graph data found. Routing to LLM general handler...")
 
-            greetings = ["hello", "hi ", "hey", "good morning", "how are you", "thank", "frustrat", "bot", "person"]
-            is_greeting = any(g in msg_lower for g in greetings)
+            # Check if the message is likely technical to decide between LLM chat and web search
+            technical_signals = re.search(
+                r'(error|fix|broken|crash|install|update|vpn|network|wifi|license|reset|battery|driver|boot|slow|screen|keyboard|mouse)',
+                request.message,
+                re.IGNORECASE,
+            )
 
-            if is_greeting:
-                if "thank" in msg_lower:
-                    final_text = "You are very welcome! Let me know if you need help with anything else."
-                elif "how are you" in msg_lower or "morning" in msg_lower:
-                    final_text = "Good morning! I am functioning perfectly. How can I help you today?"
-                elif "bot" in msg_lower or "person" in msg_lower:
-                    final_text = "I am a professional Enterprise Support AI. How can I assist you with your technical issues today?"
-                elif "frustrat" in msg_lower:
-                    final_text = "I understand system errors can be frustrating. Please tell me the specific error code or product you are having trouble with, and I will help you resolve it."
-                else:
-                    final_text = "Hi there! I am ready to help. What enterprise product or technical issue can I assist you with?"
-            else:
-                # ------------------------------------------------------------------
-                # TAVILY WEB AGENT (Fallback) - UPDATED FOR MODEL FIDELITY
-                # ------------------------------------------------------------------
-                print("🌐 ROUTER: Intent is technical, but local graph is empty. Triggering Tavily Web Search...")
+            if technical_signals:
+                print("🌐 ROUTER: Technical intent, but local graph is empty. Triggering Tavily Web Search...")
                 try:
                     search_result = tavily_client.search(query=request.message, search_depth="basic")
                     web_context = "\n".join([f"- {result['content']}" for result in search_result['results']])
-                    
-                    # --- THIS IS THE UPDATED PROMPT ---
-                    draft_prompt = f"""
-                    You are a highly precise IT Support Expert. 
-                    The user is asking about: {request.message}
 
-                    Answer strictly using this web data: {web_context}
+                    draft_prompt = f"""{base_system_prompt}
 
-                    STRICT RULE: Ensure you address the EXACT device mentioned by the user. 
-                    If the user asks about an 'iPhone 15', do not refer to it as 'iPhone 15 Pro' 
-                    even if the search results mention the Pro model. Standardize the 
-                    advice to the user's specific request.
-                    """
-                    # ----------------------------------
-                    
-                    draft_completion = groq_client.chat.completions.create(
-                        model=GROQ_MODEL,
-                        messages=[
-                            {"role": "system", "content": draft_prompt},
-                            {"role": "user",   "content": request.message},
-                        ],
-                        temperature=0.1,
-                    )
-                    # Save the pure completion without the prefix
-                    final_text = draft_completion.choices[0].message.content
-                    
+You are a highly precise IT Support Expert.
+The user is asking about: {request.message}
+
+Answer strictly using this web data: {web_context}
+
+STRICT RULE: Ensure you address the EXACT device mentioned by the user.
+"""
+                    final_text = call_llm(system_prompt=draft_prompt, user_message=request.message, is_json=False)
+
                 except Exception as e:
-                    print(f"❌ TAVILY ERROR: {e}")
+                    print(f"❌ FALLBACK AGENT ERROR: {e}")
                     final_text = "I could not find this in our internal database, and the live web search failed."
+            else:
+                # Non-technical (greetings, chit-chat, thanks) — let the LLM handle it naturally
+                general_prompt = f"""{base_system_prompt}
 
-            add_to_memory(session_id, "ai", final_text)
+You are a professional Enterprise Support AI. Respond naturally and helpfully.
+RULES:
+1. DO NOT say "According to your history".
+2. Keep responses concise and warm.
+3. If the user has no technical issue, offer to help with one.
+"""
+                final_text = call_llm(system_prompt=general_prompt, user_message=request.message, is_json=False)
+
+            save_to_memory(session_id, "ai", final_text)
             return {"response": final_text}
 
-        # ------------------------------------------------------------------
-        # STEP 3.5: PYTHON AMBIGUITY ROUTER
-        # ------------------------------------------------------------------
+        # ---- Multi-error clarification gate ----
         error_pattern = r'(SYS-ERR-[0-9a-zA-Z]+|ACT-[0-9]+|HTTP \d+)'
         graph_errors = list(set(re.findall(error_pattern, graph_context.upper())))
 
@@ -258,72 +346,41 @@ async def chat_endpoint(request: ChatRequest):
             if not user_specified_code and not user_gave_hint:
                 error_list = " or ".join(graph_errors[:2])
                 clarification = f"I see a few known issues for that product. Are you experiencing {error_list}?"
-                add_to_memory(session_id, "ai", clarification, context=graph_context)
+                save_to_memory(session_id, "ai", clarification)
                 return {"response": clarification}
 
         # ------------------------------------------------------------------
-        # STEP 4: AGENT 2 — Groq-powered Response Drafter
+        # STEP 4: SINGLE-PASS MASTER AGENT (Draft + Critic Combined)
         # ------------------------------------------------------------------
-        print("✍️ AGENT 2: Drafting response via Groq...")
-        draft_prompt = f"""
-        You are a highly efficient Enterprise IT Bot. State the resolution directly.
-        DO NOT say "I can help". DO NOT ask the user questions. DO NOT offer to troubleshoot.
+        print("⚡ AGENT 2: Generating final verified response...")
 
-        CRITICAL RULES:
-        1. If the user asks about a SPECIFIC error, give ONLY the fix for that error from the facts below.
-        2. If the user asks for hardware specifications, output EXACTLY: "Please refer to the live catalog for the full hardware specifications."
-        3. Never say "According to the graph data".
+        master_prompt = f"""{base_system_prompt}
 
-        Facts to use: {graph_context}
-        """
-        draft_completion = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": draft_prompt},
-                {"role": "user",   "content": request.message},
-            ],
-            temperature=0.1,
-        )
-        draft = draft_completion.choices[0].message.content
+You are a highly efficient Enterprise IT Bot. State the resolution directly based ONLY on the provided facts.
 
-        # ------------------------------------------------------------------
-        # STEP 5: AGENT 3 — Groq-powered Critic / Fact-Checker
-        # ------------------------------------------------------------------
-        print("🕵️ AGENT 3: Fact-checking draft via Groq...")
-        critic_prompt = f"""
-        Remove any conversational filler like "Would you like me to help?" or "I can walk you through this."
-        Remove "According to the graph data".
-        Output ONLY the cleaned answer.
-        Draft: {draft}
+CRITICAL RULES:
+1. DO NOT say "I can help", "Would you like me to help?", or "According to the graph data".
+2. DO NOT ask the user questions or offer to troubleshoot.
+3. If the user asks about a SPECIFIC error, give ONLY the fix for that error.
+4. Remove all conversational filler. Provide only the factual, cleaned answer.
 
-        RESPOND STRICTLY IN JSON format with a single key called "final". Example: {{"final": "The cleaned answer."}}
-        """
-        try:
-            critic_completion = groq_client.chat.completions.create(
-                model=GROQ_MODEL,
-                messages=[
-                    {"role": "system", "content": "You only output pure JSON."},
-                    {"role": "user",   "content": critic_prompt},
-                ],
-                temperature=0.0,
-                response_format={"type": "json_object"},
-            )
-            final_data = json.loads(critic_completion.choices[0].message.content)
-            final_text = final_data.get("final", final_data.get("final_response", draft))
-            if "draft answer" in final_text.lower():
-                final_text = draft
-        except Exception:
-            final_text = draft
+Facts to use: {graph_context}
+"""
 
+        final_text = call_llm(system_prompt=master_prompt, user_message=request.message, is_json=False)
+
+        # Quick manual scrub just in case the LLM disobeys the prompt
         final_text = final_text.replace("According to the graph data,", "").strip()
-        print("✅ SYSTEM: Final verified response sent to UI.")
-        add_to_memory(session_id, "ai", final_text, context=graph_context)
+
+        print("✅ SYSTEM: Final response sent to UI.")
+        save_to_memory(session_id, "ai", final_text)
 
         return {"response": final_text}
 
     except Exception as e:
         print(f"❌ SYSTEM ERROR: {e}")
         raise HTTPException(status_code=500, detail=f"Agentic Pipeline offline. Error: {str(e)}")
+
 
 if __name__ == "__main__":
     import uvicorn

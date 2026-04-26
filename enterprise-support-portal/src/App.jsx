@@ -7,20 +7,34 @@ import RuixenBackground from './components/RuixenBackground';
 import { useChat } from './hooks/useChat';
 import { checkOllamaHealth } from './utils/ollamaApi';
 
-function loadSessions() {
-  try { return JSON.parse(localStorage.getItem('esp_sessions') || '[]'); }
-  catch { return []; }
+// ---------------------------------------------------------------------------
+// LocalStorage helpers
+// ---------------------------------------------------------------------------
+const LS_SESSIONS    = 'esp_sessions';
+const LS_ALL_MSGS    = 'esp_all_messages';
+const LS_ACTIVE_ID   = 'esp_active_session_id';
+
+function loadJSON(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+  catch { return fallback; }
 }
-function saveSessions(sessions) {
-  localStorage.setItem('esp_sessions', JSON.stringify(sessions));
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch { /* quota exceeded — fail silently */ }
 }
+
+// ---------------------------------------------------------------------------
+// Session ID generator
+// ---------------------------------------------------------------------------
 function genId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
 export default function App() {
-  // Removed forced dark mode so ThemeToggle controls it
-
+  // ── System health ─────────────────────────────────────────────────────────
   const [isOnline, setIsOnline] = useState(false);
   useEffect(() => {
     const check = async () => setIsOnline(await checkOllamaHealth());
@@ -29,77 +43,124 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const [sessions, setSessions] = useState(loadSessions);
-  const [activeSessionId, setActiveSessionId] = useState(null);
-  const { messages, isStreaming, error, sendMessage, stopStreaming, clearMessages } = useChat();
+  // ── Session list (array of { id, title }) ─────────────────────────────────
+  const [sessions, setSessions] = useState(() => loadJSON(LS_SESSIONS, []));
 
+  // ── Messages map: { [sessionId]: Message[] } — the single source of truth ─
+  const [allMessages, setAllMessages] = useState(() => loadJSON(LS_ALL_MSGS, {}));
+
+  // ── Active session ────────────────────────────────────────────────────────
+  const [activeSessionId, setActiveSessionId] = useState(
+    () => loadJSON(LS_ACTIVE_ID, null)
+  );
+
+  // ── Persist sessions list whenever it changes ─────────────────────────────
+  useEffect(() => { saveJSON(LS_SESSIONS, sessions); }, [sessions]);
+
+  // ── Persist the full message map whenever any session's history changes ───
+  useEffect(() => { saveJSON(LS_ALL_MSGS, allMessages); }, [allMessages]);
+
+  // ── Persist the active session so the correct tab is restored on refresh ──
+  useEffect(() => { saveJSON(LS_ACTIVE_ID, activeSessionId); }, [activeSessionId]);
+
+  // ── Auto-update sidebar title from first message of each session ──────────
   useEffect(() => {
-    if (!activeSessionId || messages.length === 0) return;
-    setSessions((prev) => {
-      const updated = prev.map((s) =>
-        s.id === activeSessionId
-          ? {
-              ...s,
-              messages,
-              title: messages[0]?.content?.slice(0, 38) + (messages[0]?.content?.length > 38 ? '…' : '') || s.title,
-            }
-          : s
-      );
-      saveSessions(updated);
-      return updated;
-    });
-  }, [messages, activeSessionId]);
+    if (!activeSessionId) return;
+    const msgs = allMessages[activeSessionId];
+    if (!msgs || msgs.length === 0) return;
 
+    const firstUserMsg = msgs.find((m) => m.role === 'user');
+    if (!firstUserMsg) return;
+
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === activeSessionId
+          ? { ...s, title: firstUserMsg.content.slice(0, 38) + (firstUserMsg.content.length > 38 ? '…' : '') }
+          : s
+      )
+    );
+  // Only re-run when the active session's message count changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allMessages[activeSessionId]?.length, activeSessionId]);
+
+  // ── Plug into useChat, passing the shared map down ────────────────────────
+  const { messages, isStreaming, error, sendMessage, stopStreaming } = useChat({
+    activeSessionId,
+    allMessages,
+    setAllMessages,
+  });
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleNewChat = useCallback(() => {
     const id = genId();
-    const newSession = { id, title: 'New Conversation', messages: [] };
-    setSessions((prev) => {
-      const updated = [newSession, ...prev];
-      saveSessions(updated);
-      return updated;
+    const newSession = { id, title: 'New Conversation' };
+    startTransition(() => {
+      setSessions((prev) => {
+        const updated = [newSession, ...prev];
+        saveJSON(LS_SESSIONS, updated);
+        return updated;
+      });
+      // Initialise an empty history for this session in the map
+      setAllMessages((prev) => ({ ...prev, [id]: [] }));
+      setActiveSessionId(id);
+      saveJSON(LS_ACTIVE_ID, id);
     });
-    setActiveSessionId(id);
-    clearMessages();
-  }, [clearMessages]);
+  }, []);
 
+  /**
+   * Switch to a session: just change the active ID.
+   * The messages are already cached in allMessages — no clearing needed.
+   */
   const handleSelectSession = useCallback((id) => {
-    setActiveSessionId(id);
-    clearMessages();
-  }, [clearMessages]);
+    startTransition(() => {
+      setActiveSessionId(id);
+      saveJSON(LS_ACTIVE_ID, id);
+    });
+  }, []);
 
   const handleDeleteSession = useCallback((id) => {
     setSessions((prev) => {
       const updated = prev.filter((s) => s.id !== id);
-      saveSessions(updated);
+      saveJSON(LS_SESSIONS, updated);
       return updated;
+    });
+    // Remove history for deleted session from the map
+    setAllMessages((prev) => {
+      const { [id]: _removed, ...rest } = prev;
+      saveJSON(LS_ALL_MSGS, rest);
+      return rest;
     });
     if (activeSessionId === id) {
       setActiveSessionId(null);
-      clearMessages();
+      saveJSON(LS_ACTIVE_ID, null);
     }
-  }, [activeSessionId, clearMessages]);
+  }, [activeSessionId]);
 
+  /**
+   * Send a message. Auto-creates a session if none is active.
+   */
   const handleSend = useCallback((text) => {
     if (!activeSessionId) {
       const id = genId();
-      const newSession = { id, title: text.slice(0, 38), messages: [] };
-      // Wrap heavy session-creation + localStorage write in startTransition
-      // so the click is acknowledged instantly and React treats the
-      // session state update as a non-urgent (interruptible) render.
+      const newSession = { id, title: text.slice(0, 38) };
       startTransition(() => {
         setSessions((prev) => {
           const updated = [newSession, ...prev];
-          saveSessions(updated);
+          saveJSON(LS_SESSIONS, updated);
           return updated;
         });
+        setAllMessages((prev) => ({ ...prev, [id]: [] }));
         setActiveSessionId(id);
+        saveJSON(LS_ACTIVE_ID, id);
       });
+      // sendMessage is outside startTransition — network must start immediately
+      sendMessage(text);
+    } else {
+      sendMessage(text);
     }
-    // sendMessage is intentionally outside startTransition — it must
-    // run immediately so the network request starts without delay.
-    sendMessage(text);
   }, [activeSessionId, sendMessage]);
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <RuixenBackground>
       <div
@@ -123,16 +184,16 @@ export default function App() {
             onDeleteSession={handleDeleteSession}
           />
 
-          <div 
-            style={{ 
-              flex: 1, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              position: 'relative'
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              position: 'relative',
             }}
           >
             <ChatWindow messages={messages} isStreaming={isStreaming} />
-            
+
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: '24px' }}>
               <ChatInput
                 onSend={handleSend}

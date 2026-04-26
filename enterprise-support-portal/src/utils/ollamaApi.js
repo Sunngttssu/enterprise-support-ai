@@ -1,12 +1,11 @@
 /**
  * ollamaApi.js
- * Fetches responses from the new Python FastAPI backend.
+ * Fetches responses from the Python FastAPI backend.
  */
 
 // Reads from .env → VITE_API_BASE_URL.
 // Falls back to localhost so `npm run dev` still works without a .env file.
 const BACKEND_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
-
 
 /**
  * Checks if backend is reachable.
@@ -23,15 +22,16 @@ export async function checkOllamaHealth() {
 
 /**
  * Sends a chat message to the FastAPI backend.
- * @param {string} userText  User's input text
- * @param {AbortSignal} signal   AbortSignal to cancel the request
+ * @param {string}      userText   User's input text
+ * @param {string}      sessionId  Active session ID — forwarded to the backend for Neo4j memory
+ * @param {AbortSignal} signal     AbortSignal to cancel the request
  * @returns {Promise<string>} The response text
  */
-export async function sendChatMessage(userText, signal) {
+export async function sendChatMessage(userText, sessionId, signal) {
   const response = await fetch(`${BACKEND_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: userText }),
+    body: JSON.stringify({ message: userText, session_id: sessionId }),
     signal,
   });
 
