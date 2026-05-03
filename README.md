@@ -1,218 +1,237 @@
 <div align="center">
 
-# 🧠 Enterprise Support AI
+# 🛡️ GraphSentinel
 
-### Stateful Agentic GraphRAG with Zero-Hallucination Guarantees
+### Agentic GraphRAG Enterprise Customer Support Platform
 
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
-[![Neo4j](https://img.shields.io/badge/Neo4j_AuraDB-Cloud-4581C3?style=for-the-badge&logo=neo4j&logoColor=white)](https://neo4j.com/cloud/aura/)
-[![Ollama](https://img.shields.io/badge/Ollama-Llama_3_8B-000000?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.com)
-[![RAGAS Score](https://img.shields.io/badge/RAGAS_Accuracy-8.5%2F10-brightgreen.svg)](#-automated-benchmarking)
-[![License](https://img.shields.io/badge/License-Academic-orange?style=for-the-badge)](#license)
+**A production-grade, cloud-deployed AI support system powered by Knowledge Graphs, a custom fine-tuned Llama-3 model, and a multi-agent agentic pipeline.**
 
-<br />
-
-**A deterministic, privacy-first Enterprise IT support agent that retrieves verified resolutions from a Neo4j Knowledge Graph — never a hallucinated guess.** Built with a multi-agent pipeline, stateful conversational memory, and automated RAGAS benchmarking.
-
-<br />
-
-[Key Features](#-key-features) · [Architecture](#-architecture) · [Installation](#-installation) · [Run the System](#-execution-guide) · [Benchmarking](#-automated-benchmarking)
-
-<br />
-
----
+[![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-graphsentinel.vercel.app-6366f1?style=for-the-badge)](https://graphsentinel.vercel.app/)
+[![Backend API](https://img.shields.io/badge/⚡%20Backend%20API-Render-22c55e?style=for-the-badge)](https://graphsentinel-6z2h.onrender.com)
+[![Model on HuggingFace](https://img.shields.io/badge/🤗%20Model-Sunngttssu%2Fenterprise--support--bot-f59e0b?style=for-the-badge)](https://huggingface.co/Sunngttssu/enterprise-support-bot)
+[![GitHub](https://img.shields.io/badge/GitHub-enterprise--support--ai-181717?style=for-the-badge&logo=github)](https://github.com/Sunngttssu/enterprise-support-ai)
 
 </div>
 
-## 📋 Table of Contents
+---
 
-- [Key Features](#-key-features)
-- [Architecture](#-architecture)
-- [Datasets & Knowledge Graph Mapping](#-datasets--knowledge-graph-mapping)
-- [Multi-Agent Pipeline Deep Dive](#-multi-agent-pipeline-deep-dive)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Execution Guide](#-execution-guide)
-- [Automated Benchmarking](#-automated-benchmarking)
-- [Project Structure](#-project-structure)
-- [Design Rationale](#-design-rationale)
-- [License](#-license)
+## 🚀 Live Deployment
+
+| Service | Platform | URL |
+|---|---|---|
+| 🖥️ **Frontend** | Vercel | [https://graphsentinel.vercel.app/](https://graphsentinel.vercel.app/) |
+| ⚙️ **Backend API** | Render | [https://graphsentinel-6z2h.onrender.com](https://graphsentinel-6z2h.onrender.com) |
+| 📡 **API Health** | Render | [https://graphsentinel-6z2h.onrender.com/api/health](https://graphsentinel-6z2h.onrender.com/api/health) |
+| 🗄️ **Knowledge Graph** | Neo4j AuraDB | Cloud-hosted |
+| 🤗 **Fine-tuned Model** | HuggingFace Hub | [Sunngttssu/enterprise-support-bot](https://huggingface.co/Sunngttssu/enterprise-support-bot) |
+
+---
+
+## 📖 Overview
+
+**GraphSentinel** is a fully cloud-deployed, agentic AI customer support platform built for enterprise environments. Unlike traditional RAG systems that retrieve from flat vector stores, GraphSentinel is architected around a **Knowledge Graph (Neo4j AuraDB)** that captures rich semantic relationships between products, error codes, causes, and resolutions.
+
+The platform features a **multi-agent pipeline** where specialized agents collaborate to route queries, extract entities, traverse the knowledge graph, and synthesize accurate, grounded responses — all backed by a resilient multi-model LLM aggregator powered by **OpenRouter**.
+
+The custom **Llama-3 model** (fine-tuned via QLoRA/Unsloth) is used as the on-demand inference engine for knowledge graph construction and evaluation, while the live cloud backend uses OpenRouter for scalable, quota-free inference.
 
 ---
 
 ## ✨ Key Features
 
-| Capability | Description |
-|:---|:---|
-| **🔒 Zero-Hallucination Architecture** | Every resolution is sourced _exclusively_ from verified Neo4j graph triples. No answer is fabricated from parametric memory. |
-| **🤖 Multi-Agent Pipeline** | Four specialized agents (Extractor → Router → Drafter → Critic) process each query through a deterministic pipeline with clear separation of concerns. |
-| **🧩 Hybrid Regex + LLM Extraction** | Product names and error codes are captured via deterministic regex _before_ the LLM runs, eliminating poisoning from generic words like "system" or "software." |
-| **🛡️ Deterministic Intent Routing** | A pure Python regex layer intercepts greetings, out-of-domain queries, and ambiguous inputs _without_ consulting the LLM — guaranteeing consistent, instant responses. |
-| **💬 Stateful Conversational Memory** | A sliding-window memory bank retains the last **4 chat turns** and the most recent Graph Context, enabling natural follow-ups like _"Will that fix it?"_ |
-| **📊 Automated RAGAS Evaluation** | A custom `evaluate_rag.py` script uses LLM-as-a-Judge scoring against a 25-case ground truth CSV, benchmarking accuracy and latency automatically. |
-| **🔐 100% Data Privacy** | All inference runs locally via **Ollama (Llama-3 8B)**. No query or resolution ever leaves the local machine. |
-| **🌌 Ethereal Dark Theme UI** | A premium React.js frontend featuring glassmorphism, animated shader backgrounds, Framer Motion transitions, and per-session chat persistence. |
+### 🤖 Agentic Multi-Agent Pipeline
+- **Agent 1 — Hybrid Keyword Extractor:** Combines regex pattern matching with an LLM to extract technical entities from user queries (error codes, device names, component types).
+- **Agent 1.5 — Ticket Router:** Intercepts enterprise ticket IDs (e.g., `IT-404`) before any graph traversal and instantly resolves status from the mock ticketing system.
+- **Agent 2 — Master Synthesizer:** Fetches 1–2 hop graph context from Neo4j, applies a critic-verified prompt, and generates a precise, hallucination-controlled final response.
+
+### 🕸️ GraphRAG Knowledge Architecture
+- Entities and relationships (`HAS_ERROR`, `CAUSED_BY`, `RESOLVED_BY`, `HAS_GUIDE`, `REQUIRES_TOOL`) are stored as a **property graph** in Neo4j AuraDB.
+- Graph traversal (1–2 hops) surfaces richer context than flat vector similarity search, enabling multi-step reasoning about device-error-fix chains.
+
+### 🧠 Persistent Conversational Memory
+- Each chat session's history is persisted directly into **Neo4j** — not in RAM or local files — making the backend fully stateless and safe for cloud environments like Render.
+- The `(:Session)-[:HAS_MESSAGE]->(:Message)` graph model allows ordered retrieval of the last 4 conversation turns, injected into every system prompt.
+
+### 🌐 Multi-Model LLM Fallback (OpenRouter)
+- **Primary:** OpenRouter's dynamic free pool auto-router (`openrouter/free`) — automatically selects the best available free model.
+- **Fallback:** `meta-llama/llama-3.1-8b-instruct:free` — hot-swaps instantly if the primary pool fails.
+- **Web Search Fallback:** Tavily API activates for technical queries with no matching graph context.
+
+### 📴 Offline-First PWA
+- The React frontend is a **Progressive Web App (PWA)** with Workbox-powered service workers.
+- When the device goes offline, queries are routed to a **Fuse.js fuzzy search** over a local `offline_graph.json` cache, ensuring the app remains usable without internet.
+- The app is installable on desktop and mobile (standalone display mode).
+
+### ⏰ Real-Time IST Clock Awareness
+- The backend injects the live **Indian Standard Time (IST)** into every system prompt, enabling the AI to give contextually accurate greetings (Good Morning / Afternoon / Evening) and time-aware responses.
+
+### 🎫 Mock Enterprise Ticketing System
+- Built-in ticket lookup for IDs like `IT-404`, `IT-1001`, `IT-2233` etc., simulating integration with a real enterprise ITSM platform.
+
+### 🏆 Custom Fine-Tuned Llama-3 Model
+- A domain-specific **Llama-3** model was fine-tuned using **QLoRA** and **Unsloth** on a synthetically generated enterprise support dataset (~1,200 Q&A pairs).
+- Published on HuggingFace Hub: [`Sunngttssu/enterprise-support-bot`](https://huggingface.co/Sunngttssu/enterprise-support-bot).
+- Used locally via **Ollama** for knowledge graph construction (`build_knowledge_graph.py`) and RAGAS-style evaluation (`evaluate_rag.py`).
 
 ---
 
-## 🏗 Architecture
+## 🛠️ Tech Stack
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│                        CLIENT  (Browser)                             │
-│  ┌────────────────────────────────────────────────────────────────┐  │
-│  │             React 19 + Vite 8  (Port 5173)                     │  │
-│  │  ┌──────────┐  ┌───────────┐  ┌──────────┐  ┌─────────────┐    │  │
-│  │  │  Header  │  │  Sidebar  │  │ChatWindow│  │  ChatInput  │    │  │
-│  │  └──────────┘  └───────────┘  └──────────┘  └──────────────┘   │  │
-│  │           RuixenBackground (Animated Shader Canvas)            │  │
-│  └───────────────────────────┬────────────────────────────────────┘  │
-└──────────────────────────────┼───────────────────────────────────────┘
-                               │  HTTP POST /api/chat
-                               ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                   MIDDLEWARE  (FastAPI — Port 8000)                  │
-│                                                                      │
-│   ┌─────────────────────────────────────────────────────────────┐    │
-│   │             STATEFUL SESSION MEMORY BANK                    │    │
-│   │         (Sliding Window: Last 4 Turns + Graph Context)      │    │
-│   └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-│   ┌────────────────── AGENTIC PIPELINE ─────────────────────────┐    │
-│   │                                                             │    │
-│   │  ┌─────────────────┐    ┌──────────────────────────────┐    │    │
-│   │  │  AGENT 1        │    │  NEO4J GRAPH RETRIEVAL       │    │    │
-│   │  │  Hybrid Extractor───▶│  Cypher Query (1..2 hops)   │    │    │
-│   │  │  (Regex + LLM)  │    │  against Neo4j AuraDB Cloud  │    │    │
-│   │  └─────────────────┘    └──────────┬───────────────────┘    │    │
-│   │                                    │                        │    │
-│   │                                    ▼                        │    │
-│   │  ┌──────────────────────────────────────────────────────┐   │    │
-│   │  │  AGENT 1.5 — DETERMINISTIC ROUTER (Pure Python)      │   │    │
-│   │  │  • Greeting / Out-of-Domain → Instant static reply   │   │    │
-│   │  │  • Ambiguous multi-error    → Clarification prompt   │   │    │
-│   │  │  • Valid context found      → Pass to Agent 2        │   │    │
-│   │  └──────────────────────────────────┬───────────────────┘   │    │
-│   │                                    │                        │    │
-│   │                                    ▼                        │    │
-│   │  ┌─────────────────┐    ┌─────────────────────────────┐     │    │
-│   │  │  AGENT 2        │    │  AGENT 3                    │     │    │
-│   │  │  Strict Drafter ├───▶│  The Critic (JSON QA)      │     │    │
-│   │  │  (Graph-Only LLM)    │  Scrubs filler & meta-text  │     │    │
-│   │  └─────────────────┘    └─────────────────────────────┘     │    │
-│   └─────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-└──────────────┬──────────────────────────────────┬────────────────────┘
-               │                                  │
-               ▼                                  ▼
-┌─────────────────────────┐         ┌──────────────────────────────┐
-│   Neo4j AuraDB (Cloud)  │         │   Ollama (Local Inference)   │
-│   ┌───────────────────┐ │         │   ┌────────────────────────┐ │
-│   │  Knowledge Graph  │ │         │   │   Llama-3 8B Model     │ │
-│   │  Entity ──rel──▶ E│ │        │   │   JSON-mode Enforced   │ │
-│   │  Products, Errors,│ │         │   │   100% Offline         │ │
-│   │  Causes, Fixes    │ │         │   └────────────────────────┘ │
-│   └───────────────────┘ │         └──────────────────────────────┘
-└─────────────────────────┘
-```
+### Frontend
+| Technology | Role |
+|---|---|
+| ⚛️ **React 19** + **Vite 8** | Core UI framework with fast HMR |
+| 🎨 **Tailwind CSS v4** | Utility-first styling |
+| 🎞️ **Framer Motion** | Micro-animations and transitions |
+| 🔍 **Fuse.js** | Offline fuzzy search over the local knowledge cache |
+| 🖱️ **Lucide React** | Icon library |
+| 📦 **vite-plugin-pwa** | Progressive Web App manifest and Workbox service worker |
 
-### Data Flow Summary
+### Backend
+| Technology | Role |
+|---|---|
+| ⚡ **FastAPI** | Async REST API framework |
+| 🕸️ **Neo4j AuraDB** + `langchain-neo4j` | Cloud graph database for knowledge storage and persistent memory |
+| 🤖 **OpenRouter API** + `openai` SDK | Multi-model LLM aggregator with automatic fallback |
+| 🌐 **Tavily API** | Real-time web search for queries not found in the graph |
+| 🧬 **LangGraph** | Agentic workflow orchestration |
+| 📊 **Sentence Transformers** | Embedding generation for semantic similarity |
+| 🦙 **Ollama** (local only) | Runtime for the custom fine-tuned Llama-3 model |
+| 🐍 **Uvicorn** | ASGI server for production deployment |
 
-1. **User submits a query** via the React chat interface → hits `POST /api/chat`.
-2. **Agent 1 (Hybrid Extractor)** runs regex patterns for known product names and error codes, then asks the LLM in JSON-mode for any remaining technical nouns.
-3. **Neo4j Graph Retrieval** fires a Cypher query (1–2 hop traversal) on the extracted keywords, returning structured `[Source] RELATIONSHIP [Target]` triples.
-4. **Agent 1.5 (Deterministic Router)** inspects the result: if no graph data exists, it handles the response in pure Python (greetings, out-of-domain rejection, or ambiguity clarification) — the LLM is **never** invoked for these cases.
-5. **Agent 2 (Strict Drafter)** receives only verified graph triples as its prompt context and drafts a resolution. It is instructed to never speculate.
-6. **Agent 3 (The Critic)** runs a JSON-mode QA pass to strip any robotic filler ("Would you like me to help?"), self-references ("According to the graph data"), or AI meta-commentary.
-7. **Final response** is returned to the frontend with session memory updated.
+### MLOps & Data Pipeline
+| Technology | Role |
+|---|---|
+| 🤗 **Transformers** + **PEFT** | QLoRA fine-tuning infrastructure |
+| ⚡ **Unsloth** | Fast QLoRA fine-tuning optimizer |
+| 🦙 **Ollama** (local) | Dataset generation and RAG evaluation inference engine |
+| 🗃️ **ChromaDB** | Vector store (used in pipeline experimentation) |
+| 📐 **LangChain** | Document processing and chain composition |
+| 📊 **Pandas** + **Matplotlib** | Evaluation metrics and reporting |
+
+### Infrastructure
+| Service | Platform |
+|---|---|
+| 🖥️ Frontend Hosting | Vercel |
+| ⚙️ Backend Hosting | Render |
+| 🗄️ Graph Database | Neo4j AuraDB (Free Tier) |
+| 🤗 Model Registry | HuggingFace Hub |
 
 ---
 
-## 🗄 Datasets & Knowledge Graph Mapping
-
-To simulate a true enterprise environment, the Neo4j Knowledge Graph was populated using a synthesis of real-world unstructured and structured technical data:
-
-1. **iFixit Hardware Teardowns (ifixit_graph_nodes.json)**: Mapped physical hardware components to specific error codes and mechanical resolutions (e.g., reseating thermal sensor ribbon cables).
-
-2. **FCC Compliance Manuals (fcc_manual_chunks.json)**: Extracted logical software conflicts, network protocols, and Windows standby state errors.
-
-3. **Enterprise Catalog Cache (live_catalog_data.json)**: Structured JSON containing exact product SKUs, hardware specifications, and API names.
-
-4. **Synthetic Q&A Pairs (synthetic_finetuning_data.jsonl)**: Used to establish edge-case mapping for the Intent Router and conversational fallback states.
-
----
-
-## 🔬 Multi-Agent Pipeline Deep Dive
-
-### Agent 1 — Hybrid Extractor
+## 📁 Repository Structure
 
 ```
-User Input: "My TitanBook is draining battery really fast"
-                    │
-    ┌───────────────┴───────────────┐
-    │  Regex Layer (Deterministic)  │    ──▶  ["titanbook"]
-    └───────────────┬───────────────┘
-                    │
-    ┌───────────────┴───────────────┐
-    │  LLM JSON-mode (Dynamic)      │    ──▶  ["battery"]
-    └───────────────┬───────────────┘
-                    │
-          Union + Deduplication
-                    │
-              ──▶  ["titanbook", "battery"]
+enterprise-support-ai/
+│
+├── 📁 enterprise-support-portal/      # React + Vite Frontend (→ Vercel)
+│   ├── 📁 src/
+│   │   ├── 📁 components/
+│   │   │   ├── ChatInput.jsx          # Message input bar with stop button
+│   │   │   ├── ChatMessage.jsx        # Individual message bubble (user/AI)
+│   │   │   ├── ChatWindow.jsx         # Scrollable message viewport
+│   │   │   ├── GlowingButton.jsx      # Reusable animated CTA button
+│   │   │   ├── Header.jsx             # Top bar with system status indicator
+│   │   │   ├── RuixenBackground.jsx   # WebGL/SVG animated background shader
+│   │   │   ├── Sidebar.jsx            # Multi-session conversation list
+│   │   │   ├── ThemeToggle.jsx        # Light/dark glassmorphism theme switcher
+│   │   │   └── TypingIndicator.jsx    # Animated "AI is thinking" indicator
+│   │   ├── 📁 hooks/
+│   │   │   └── useChat.js             # Core chat logic: online/offline routing, Fuse.js
+│   │   ├── 📁 utils/
+│   │   │   └── ollamaApi.js           # Fetch wrapper for the FastAPI backend
+│   │   ├── App.jsx                    # Root component, session management (localStorage + Neo4j)
+│   │   ├── main.jsx                   # React DOM entry point
+│   │   └── index.css                  # Global design tokens and animations
+│   ├── vite.config.js                 # Vite + PWA + TailwindCSS config
+│   └── package.json
+│
+├── 🐍 enterprise_backend.py          # FastAPI backend — agentic pipeline (→ Render)
+│
+├── 🔧 Data Pipeline Scripts (local / one-time)
+│   ├── build_knowledge_graph.py      # Extracts entities via local Llama-3, pushes to Neo4j
+│   ├── neo4j_ingestion.py            # Pushes structured iFixit guide data into Neo4j
+│   ├── catalog_api_fetcher.py        # Scrapes product catalog data from external APIs
+│   ├── generate_catalog_cache.py     # Pre-generates the offline_graph.json for the PWA
+│   ├── ifixit_kg_extractor.py        # Extracts guide data from the iFixit API
+│   ├── graph_real_expansion.py       # Expands the knowledge graph with additional nodes
+│   ├── pdf_kg_extractor.py           # Extracts entity triples from PDF manuals
+│   ├── dataset_generator.py          # Generates synthetic QLoRA fine-tuning data via Ollama
+│   ├── vector_ingestion.py           # Ingests document chunks into ChromaDB
+│   └── evaluate_rag.py               # RAGAS-style LLM-as-a-judge evaluation pipeline
+│
+├── 📁 knowledge_base/                 # Source .txt documents for graph construction
+├── 📁 processed_data/                 # Processed JSON chunks and JSONL training data
+├── 📁 raw_data/                       # Original raw documents and manuals
+├── 📁 chroma_db_export/               # Exported ChromaDB vector store (gitignored)
+│
+├── ground_truth.csv                   # Hand-labeled Q&A pairs for evaluation
+├── evaluation_report.csv              # Auto-generated RAGAS evaluation results
+├── requirements.txt                   # Python backend dependencies (pinned)
+└── .gitignore
 ```
 
-The regex layer captures products (`TitanBook`, `Nexus`, `Floating License`) and error codes (`SYS-ERR-0x88`, `ACT-5001`, `HTTP 429`) with mathematical certainty. The LLM layer supplements with dynamic hardware nouns. Generic words (`system`, `broken`, `script`) are explicitly excluded from the LLM's extraction prompt.
+---
 
-### Agent 1.5 — Deterministic Router
+## 🔄 System Architecture
 
-This agent is **not an LLM call**. It is a pure Python decision tree that:
-
-- **Greetings** (`"hello"`, `"thank you"`) → Returns a static, polite reply instantly.
-- **Out-of-Domain** (`"bake a cake"`, `"Super Bowl"`) → Returns a rejection message without ever consulting the LLM.
-- **Ambiguous Multi-Error** (graph returns `SYS-ERR-0x88` AND `SYS-ERR-0x92` but user didn't specify) → Returns a clarification prompt asking the user which error they mean.
-
-This eliminates an entire class of hallucination where the LLM might try to "helpfully" answer off-topic questions.
-
-### Agent 2 — Strict Drafter
-
-Receives a system prompt containing **only** the verified graph triples. It is bound by these rules:
-- Never say _"I can help you"_ or _"Would you like me to troubleshoot?"_
-- Never reference the data source (_"According to the graph..."_)
-- Hardware specification queries → redirect to the live catalog
-
-### Agent 3 — The Critic
-
-A JSON-mode QA agent that receives the draft and outputs `{"final": "..."}`. It scrubs:
-- Conversational filler
-- Self-referencing ("Based on my analysis...")
-- Any lingering meta-commentary
-
-If the Critic's JSON parsing fails, the system gracefully falls back to Agent 2's raw draft.
+```
+User Browser (PWA)
+        │
+        ▼
+┌──────────────────────────────────┐
+│   React + Vite Frontend          │
+│   (Vercel — graphsentinel.vercel.app) │
+│                                  │
+│  • Multi-session Sidebar          │
+│  • LocalStorage session cache     │
+│  • Fuse.js offline fallback       │
+│  • PWA + Workbox service worker   │
+└─────────────┬────────────────────┘
+              │  POST /api/chat
+              │  GET  /api/health
+              ▼
+┌──────────────────────────────────┐
+│   FastAPI Backend                │
+│   (Render — graphsentinel-6z2h.onrender.com) │
+│                                  │
+│  ┌─────────────────────────┐     │
+│  │  Agent 1.5: Ticket Router│     │
+│  │  (regex → MOCK_TICKETS)  │     │
+│  └───────────┬─────────────┘     │
+│              │ (no ticket)        │
+│  ┌───────────▼─────────────┐     │
+│  │  Agent 1: Keyword        │     │
+│  │  Extractor (Regex + LLM) │     │
+│  └───────────┬─────────────┘     │
+│              │                   │
+│  ┌───────────▼─────────────┐     │
+│  │  Neo4j Graph Traversal   │◄────┼──── Neo4j AuraDB
+│  │  (1-2 hop Cypher query)  │     │     (Knowledge Graph
+│  └───────────┬─────────────┘     │      + Session Memory)
+│              │                   │
+│  ┌───────────▼─────────────┐     │
+│  │  Agent 2: Master LLM     │     │
+│  │  (OpenRouter primary →   │     │
+│  │   Llama-3.1 fallback →   │     │
+│  │   Tavily web search)     │     │
+│  └─────────────────────────┘     │
+└──────────────────────────────────┘
+```
 
 ---
 
-## 📌 Prerequisites
+## ⚙️ Local Development Setup
 
-Ensure the following are installed on your system before proceeding:
+> **Note:** The live application is fully operational at the deployment URLs above. Local setup is only needed for development or to run the data pipeline scripts with the custom Llama-3 model.
 
-| Requirement | Version | Purpose |
-|:---|:---|:---|
-| **Python** | 3.10+ | Backend middleware & evaluation scripts |
-| **Node.js** | 18+ | React frontend build toolchain |
-| **npm** | 9+ | Frontend dependency management |
-| **Ollama** | Latest | Local LLM inference runtime |
-| **Neo4j AuraDB** | Free/Pro | Cloud-hosted Knowledge Graph instance |
-| **Git** | Latest | Repository cloning |
+### Prerequisites
 
-> [!NOTE]
-> **Ollama** can be installed from [ollama.com](https://ollama.com). It runs as a background service and manages model downloads automatically on all major platforms (Windows, macOS, Linux).
+- Node.js `>= 18.x`
+- Python `>= 3.10`
+- [Ollama](https://ollama.com/) (required **only** for data pipeline scripts — not for the web app)
 
 ---
-
-## 🚀 Installation
 
 ### 1. Clone the Repository
 
@@ -221,302 +240,272 @@ git clone https://github.com/Sunngttssu/enterprise-support-ai.git
 cd enterprise-support-ai
 ```
 
-### 2. Backend Setup (Python)
+---
 
-Create and activate a virtual environment, then install dependencies:
+### 2. Backend Setup
 
 ```bash
-# Create virtual environment
+# Create and activate a virtual environment
 python -m venv venv
 
-# Activate (Windows)
-.\venv\Scripts\activate
+# Windows
+venv\Scripts\activate
 
-# Activate (macOS/Linux)
+# macOS/Linux
 source venv/bin/activate
 
 # Install dependencies
-pip install fastapi uvicorn ollama neo4j pydantic pandas requests
+pip install -r requirements.txt
 ```
 
-> [!TIP]
-> You can freeze your exact versions with `pip freeze > requirements.txt` after installation for reproducibility.
-
-### 3. Frontend Setup (React + Vite)
+Create a `.env` file in the project root:
 
 ```bash
-cd enterprise-support-portal
-npm install
-cd ..
+cp .env.example .env  # or create it manually (see Environment Variables section)
 ```
 
-### 4. Pull the LLM Model via Ollama
-
-Ensure the Ollama service is running, then pull the model:
+Start the backend:
 
 ```bash
-# Start Ollama (if not already running as a system service)
-ollama serve
-
-# In a separate terminal, pull the model
-ollama pull hf.co/Sunngttssu/enterprise-support-bot
+uvicorn enterprise_backend:app --reload --host 127.0.0.1 --port 8000
 ```
 
-> [!IMPORTANT]
-> The Llama-3 8B model requires approximately **4.7 GB** of disk space. Ensure sufficient storage before pulling.
-
-### 5. Configure Neo4j Credentials
-
-Open `enterprise_backend.py` and update the connection constants with your Neo4j AuraDB credentials:
-
-```python
-# enterprise_backend.py — Lines 12-13
-URI  = "neo4j+s://<your-aura-instance-id>.databases.neo4j.io"
-AUTH = ("<your-username>", "<your-password>")
-```
-
-Apply the same credentials in `build_knowledge_graph.py`:
-
-```python
-# build_knowledge_graph.py — Lines 8-9
-URI  = "neo4j+s://<your-aura-instance-id>.databases.neo4j.io"
-AUTH = ("<your-username>", "<your-password>")
-```
-
-> [!CAUTION]
-> **Never commit credentials to version control.** For production deployments, use environment variables or a `.env` file excluded via `.gitignore`.
-
-### 6. Populate the Knowledge Graph
-
-Place your enterprise support `.txt` documents in the `knowledge_base/` directory, then run:
-
-```bash
-python build_knowledge_graph.py
-```
-
-This script:
-1. Clears any existing graph data.
-2. Reads each `.txt` file from `knowledge_base/`.
-3. Uses Llama-3 to extract `(Entity)-[RELATIONSHIP]->(Entity)` triples.
-4. Ingests each triple into Neo4j AuraDB via Cypher `MERGE` queries.
+The API will be available at `http://127.0.0.1:8000`.
+- Health check: `GET http://127.0.0.1:8000/api/health`
+- Interactive docs: `http://127.0.0.1:8000/docs`
 
 ---
 
-## ▶️ Execution Guide
-
-The system requires **three concurrently running services**. Open three separate terminal windows:
-
-### Terminal 1 — Ollama (LLM Inference Server)
-
-```bash
-ollama serve
-```
-
-> If Ollama is installed as a system service, it may already be running. Verify with `ollama list`.
-
-### Terminal 2 — FastAPI Backend (Port 8000)
-
-```bash
-# Activate the virtual environment first
-.\venv\Scripts\activate          # Windows
-source venv/bin/activate          # macOS/Linux
-
-# Start the backend server
-python enterprise_backend.py
-```
-
-Expected output:
-
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-INFO:     Application startup complete.
-```
-
-### Terminal 3 — React Frontend (Port 5173)
+### 3. Frontend Setup
 
 ```bash
 cd enterprise-support-portal
+
+# Install dependencies
+npm install
+```
+
+Create a `.env` file inside `enterprise-support-portal/`:
+
+```env
+# Point the frontend to your local backend during development
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+> For local development against the live cloud backend, set:
+> `VITE_API_BASE_URL=https://graphsentinel-6z2h.onrender.com`
+
+Start the development server:
+
+```bash
 npm run dev
 ```
 
-Expected output:
-
-```
-  VITE v8.0.0  ready in 350 ms
-
-  ➜  Local:   http://localhost:5173/
-```
-
-### ✅ Access the Application
-
-Open your browser and navigate to:
-
-```
-http://localhost:5173
-```
-
-The UI will display a connection status indicator (🟢 Online / 🔴 Offline) in the header, confirming backend connectivity.
+The app will be available at `http://localhost:5173`.
 
 ---
 
-## 📊 Automated Benchmarking
+### 4. (Optional) Running the Custom Llama-3 Model Locally
 
-The project includes a custom RAGAS-inspired evaluation pipeline that benchmarks the entire system end-to-end against a 25-case ground truth adversarial dataset.
-
-### How It Works
-
-1. Loads the **25-case ground truth dataset** from `ground_truth.csv`.
-2. Sends each question to the live FastAPI backend with a **unique session ID** (preventing memory bleed between tests).
-3. Uses **LLM-as-a-Judge** scoring: Llama-3 compares the system's actual response against the expected answer and assigns a score from **0–10**.
-4. Measures **per-query latency** in seconds.
-5. Outputs a detailed `evaluation_report.csv` with per-question scores, reasoning, and timing.
-
-### Run the Benchmark
-
-> [!IMPORTANT]
-> Both the **Ollama service** and **FastAPI backend** must be running before executing the evaluation script.
+The custom fine-tuned model is used for **knowledge graph construction** and **RAG evaluation** — not for the live web app (which uses OpenRouter). To run it locally:
 
 ```bash
-# Ensure venv is activated
+# Pull the custom fine-tuned model from HuggingFace Hub via Ollama
+ollama pull hf.co/Sunngttssu/enterprise-support-bot
+```
+
+Verify the model is available:
+
+```bash
+ollama list
+# Should show: hf.co/Sunngttssu/enterprise-support-bot
+```
+
+You can then run the data pipeline scripts:
+
+```bash
+# Build / refresh the knowledge graph from .txt files in knowledge_base/
+python build_knowledge_graph.py
+
+# Generate a synthetic QLoRA fine-tuning dataset
+python dataset_generator.py
+
+# Run the LLM-as-a-Judge RAG evaluation suite
 python evaluate_rag.py
 ```
 
-### Expected Output
+---
 
+## 🔑 Environment Variables
+
+### Backend — Root `.env`
+
+| Variable | Description | Required |
+|---|---|---|
+| `OPENROUTER_API_KEY` | OpenRouter API key for multi-model LLM access | ✅ Yes |
+| `TAVILY_API_KEY` | Tavily API key for real-time web search fallback | ✅ Yes |
+| `NEO4J_URI_MAIN` | Neo4j AuraDB connection URI (e.g. `neo4j+s://xxxx.databases.neo4j.io`) | ✅ Yes |
+| `NEO4J_USERNAME_MAIN` | Neo4j AuraDB username | ✅ Yes |
+| `NEO4J_PASSWORD_MAIN` | Neo4j AuraDB password | ✅ Yes |
+| `NEO4J_URI_EXPANSION` | Secondary Neo4j instance URI (graph expansion scripts) | ⚠️ Optional |
+| `NEO4J_USERNAME_EXPANSION` | Secondary Neo4j username | ⚠️ Optional |
+| `NEO4J_PASSWORD_EXPANSION` | Secondary Neo4j password | ⚠️ Optional |
+
+### Frontend — `enterprise-support-portal/.env`
+
+| Variable | Description | Required |
+|---|---|---|
+| `VITE_API_BASE_URL` | Base URL of the FastAPI backend (no trailing slash) | ✅ Yes |
+
+**Example (Production):**
+```env
+VITE_API_BASE_URL=https://graphsentinel-6z2h.onrender.com
 ```
-🚀 Initializing Local RAGAS Evaluation Pipeline...
-📊 Found 25 test cases. Commencing automated testing...
 
-🔄 Testing [1/25]: My TitanBook is draining battery rea...
-   -> Score: 9/10 | Latency: 2.34s
-🔄 Testing [2/25]: I'm getting an HTTP 429 error on the...
-   -> Score: 10/10 | Latency: 1.87s
-...
-
-✅ Evaluation Complete! Average System Accuracy: X.X/10
-📄 Detailed report saved to evaluation_report.csv
+**Example (Local Development):**
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-### Evaluation Categories
-
-The ground truth dataset covers **five evaluation dimensions**:
-
-| Category | Count | Tests |
-|:---|:---:|:---|
-| **Direct Retrieval** | 9 | Single-entity error lookups, specification queries |
-| **Multi-Entity Conflict** | 5 | Queries containing 2+ simultaneous errors/products |
-| **Out-of-Domain** | 5 | Off-topic queries that should be cleanly rejected |
-| **Conversational** | 4 | Greetings, emotional states, identity checks |
-| **Edge Cases** | 2 | Terse inputs, shorthand error references |
-
-
-### Final System Performance
-
-1. **Accuracy Score**: 8.5 / 10
-
-2. **Average Latency (Deterministic Routing)**: < 1.0 second
-
-3. **Average Latency (Full Graph Retrieval)**: ~5.5 seconds
+> ⚠️ **Security:** Never commit `.env` files to version control. Both `.env` files are listed in `.gitignore`.
 
 ---
 
-## 📁 Project Structure
+## 🚢 Cloud Deployment
 
-```
-enterprise-support-ai/
-│
-├── enterprise_backend.py           # FastAPI server — agentic pipeline & memory bank
-├── build_knowledge_graph.py        # LLM-powered graph triple extraction & Neo4j ingestion
-├── evaluate_rag.py                 # Automated RAGAS evaluation (LLM-as-a-Judge)
-├── ground_truth.csv                # 25-case benchmark dataset (5 categories)
-├── evaluation_report.csv           # Generated evaluation results
-│
-├── knowledge_base/                 # Raw .txt support documents (input for KG builder)
-├── raw_data/                       # Source data artifacts
-├── processed_data/                 # Intermediate processing outputs
-│
-├── catalog_api_fetcher.py          # Product catalog API integration
-├── generate_catalog_cache.py       # Catalog caching utilities
-├── neo4j_ingestion.py              # Direct Neo4j ingestion helpers
-├── dataset_generator.py            # Synthetic dataset generation for fine-tuning
-├── graph_real_expansion.py         # Knowledge Graph expansion utilities
-├── ifixit_kg_extractor.py          # iFixit knowledge extraction pipeline
-├── pdf_kg_extractor.py             # PDF document → KG triple extractor
-├── vector_ingestion.py             # Legacy vector DB ingestion (deprecated)
-│
-└── enterprise-support-portal/      # React Frontend
-    ├── package.json
-    ├── vite.config.js
-    ├── index.html
-    └── src/
-        ├── App.jsx                 # Root app with session management
-        ├── main.jsx                # React DOM entry point
-        ├── index.css               # Global styles & CSS variables
-        ├── App.css                 # Component-level styles
-        ├── hooks/
-        │   └── useChat.js          # Custom hook for chat state & API calls
-        ├── utils/
-        │   └── ollamaApi.js        # Backend health check & API interface
-        └── components/
-            ├── Header.jsx          # Top bar with connection status
-            ├── Sidebar.jsx         # Session history & navigation
-            ├── ChatWindow.jsx      # Message display area with auto-scroll
-            ├── ChatMessage.jsx     # Individual message bubble
-            ├── ChatInput.jsx       # Input bar with send/stop controls
-            ├── TypingIndicator.jsx # Animated typing dots
-            ├── ThemeToggle.jsx     # Light/dark mode switcher
-            ├── RuixenBackground.jsx# Animated shader background canvas
-            ├── GlowingButton.jsx   # Reusable CTA button
-            └── ui/                 # Shared primitive UI components
+### Frontend → Vercel
+
+1. Connect your GitHub repository to [Vercel](https://vercel.com).
+2. Set the **Root Directory** to `enterprise-support-portal`.
+3. Set the **Build Command** to `npm run build` and **Output Directory** to `dist`.
+4. Add the environment variable:
+   - `VITE_API_BASE_URL` → `https://graphsentinel-6z2h.onrender.com`
+5. Deploy. Vercel auto-deploys on every push to `main`.
+
+### Backend → Render
+
+1. Connect your GitHub repository to [Render](https://render.com).
+2. Create a new **Web Service**.
+3. Set **Root Directory** to `/` (the repo root).
+4. Set the **Build Command** to `pip install -r requirements.txt`.
+5. Set the **Start Command** to:
+   ```bash
+   uvicorn enterprise_backend:app --host 0.0.0.0 --port $PORT
+   ```
+6. Add all backend environment variables from the table above in Render's **Environment** tab.
+7. Deploy.
+
+---
+
+## 📊 Evaluation
+
+GraphSentinel includes a built-in **RAGAS-style** evaluation pipeline using the fine-tuned Llama-3 model as a judge.
+
+```bash
+# Requires: local backend running + Ollama with the custom model
+python evaluate_rag.py
 ```
 
----
+**Output:** `evaluation_report.csv` — a per-question report containing:
+- `Score (0-10)` — LLM-as-a-Judge factual accuracy score
+- `Latency (s)` — API response time per query
+- `Judge Reason` — Detailed explanation of the score
+- `Actual` vs `Expected` answer comparison
 
-## 📑 Ground Truth Dataset
-
-The `ground_truth.csv` file contains 25 hand-crafted test scenarios across five categories. Each row specifies the input question, expected graph context, expected answer, and evaluation category.
-
-**Sample entries:**
-
-| Question | Category | Expected Behavior |
-|:---|:---:|:---|
-| _"My TitanBook is draining battery really fast in sleep mode."_ | Direct Retrieval | Returns BIOS update resolution from graph |
-| _"I'm getting HTTP 429 on Nexus Cloud and ACT-5001 on my Floating License."_ | Multi-Entity | Resolves both errors independently |
-| _"How do I bake a chocolate cake?"_ | Out-of-Domain | Clean rejection — no hallucination |
-| _"Thank you, that fixed my issue!"_ | Conversational | Polite acknowledgment without LLM call |
+The evaluation uses **unique session IDs per test case** to prevent memory contamination between test runs.
 
 ---
 
-## 🛡️ Design Rationale
+## 🤗 Fine-Tuning Pipeline
 
-### Why a Knowledge Graph over a Vector Database?
+The domain-specific Llama-3 model was trained using the following pipeline:
 
-| Concern | Vector DB (RAG) | Knowledge Graph (GraphRAG) |
-|:---|:---|:---|
-| **Hallucination Risk** | Semantic similarity can surface _plausible but wrong_ chunks | Cypher queries return _exact_ triples — no ambiguity |
-| **Multi-Hop Reasoning** | Difficult; requires post-retrieval chain-of-thought | Native via graph traversal (`*1..2` hops) |
-| **Explainability** | Opaque cosine scores | Every answer traces back to `[Source] → REL → [Target]` |
-| **Determinism** | Non-deterministic by design | Identical queries always return identical subgraphs |
+```
+1. Raw Data Collection
+   └── PDF manuals + iFixit API + product catalogs
+       (pdf_kg_extractor.py, ifixit_kg_extractor.py, catalog_api_fetcher.py)
 
-### Why Local Inference with Ollama?
+2. Data Processing
+   └── Chunking → structured JSON
+       (vector_ingestion.py, processed_data/)
 
-- **Data Sovereignty:** Enterprise support queries may contain sensitive product data, error logs, and customer information. No data leaves the machine.
-- **Cost:** Zero API costs. No per-token billing.
-- **Latency Control:** No network round-trip to a cloud LLM provider.
-- **Reproducibility:** Same model weights, same quantization, same results.
+3. Synthetic Dataset Generation
+   └── Llama-3.1 (base) used as "Teacher" LLM
+       → 1,200 diverse Q&A pairs in Llama-3 chat format
+       (dataset_generator.py → processed_data/synthetic_finetuning_data.jsonl)
+
+4. QLoRA Fine-Tuning (Kaggle GPU)
+   └── Unsloth + PEFT + Hugging Face Trainer
+       → Custom model: Sunngttssu/enterprise-support-bot
+
+5. Knowledge Graph Construction
+   └── Fine-tuned model runs locally via Ollama
+       → Extracts (Entity)-[RELATIONSHIP]->(Entity) triples
+       → Ingests into Neo4j AuraDB
+       (build_knowledge_graph.py)
+```
 
 ---
 
-## 📄 License
+## 🔌 API Reference
 
-This project was developed as a **B.Tech Major Project** (Phase II) for academic purposes. All rights reserved by the author.
+Base URL: `https://graphsentinel-6z2h.onrender.com`
 
-For collaboration inquiries or questions, please open an [Issue](../../issues) on this repository.
+### `GET /api/health`
+Returns the backend health status.
+
+**Response:**
+```json
+{ "status": "ok" }
+```
+
+---
+
+### `POST /api/chat`
+Submits a message to the agentic pipeline.
+
+**Request Body:**
+```json
+{
+  "message": "My TitanBook Pro keeps shutting down. Error SYS-ERR-0042.",
+  "session_id": "user-abc-123"
+}
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `message` | `string` | — | The user's query |
+| `session_id` | `string` | `"default_session"` | Unique ID for persistent Neo4j memory |
+
+**Response:**
+```json
+{
+  "response": "SYS-ERR-0042 on the TitanBook Pro is caused by a faulty thermal sensor triggering a forced shutdown. Resolution: ..."
+}
+```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -m "feat: add my feature"`
+4. Push to the branch: `git push origin feature/my-feature`
+5. Open a Pull Request.
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-**Built with 🧠 Knowledge Graphs, 🤖 Local LLMs, and ☕ Way Too Much Coffee.**
+**Built with ❤️ using FastAPI, React, Neo4j, and Llama-3**
+
+[🌐 Live Demo](https://graphsentinel.vercel.app/) · [⚡ API](https://graphsentinel-6z2h.onrender.com) · [🤗 Model](https://huggingface.co/Sunngttssu/enterprise-support-bot) · [📦 GitHub](https://github.com/Sunngttssu/enterprise-support-ai)
 
 </div>
