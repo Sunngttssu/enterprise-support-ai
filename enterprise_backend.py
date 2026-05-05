@@ -5,6 +5,9 @@ from tavily import TavilyClient
 from neo4j import GraphDatabase
 from openai import OpenAI
 from dotenv import load_dotenv
+from tenacity import retry, stop_after_attempt, wait_exponential
+from upstash_redis import Redis
+import hashlib
 import datetime
 import pytz
 import json
@@ -24,10 +27,22 @@ AUTH = (os.getenv("NEO4J_USERNAME_MAIN"), os.getenv("NEO4J_PASSWORD_MAIN"))
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 driver = GraphDatabase.driver(URI, auth=AUTH)
 
-# Configure the Universal OpenAI Client (Pointed at OpenRouter)
+# Primary OpenAI Client (OpenRouter)
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
     api_key=os.getenv("OPENROUTER_API_KEY"),
+)
+
+# Fallback OpenAI Client (xAI / Grok)
+xai_client = OpenAI(
+    base_url="https://api.x.ai/v1",
+    api_key=os.getenv("XAI_API_KEY"),
+)
+
+# Semantic Cache Client (Upstash Serverless Redis)
+redis_client = Redis(
+    url=os.getenv("UPSTASH_REDIS_REST_URL"),
+    token=os.getenv("UPSTASH_REDIS_REST_TOKEN")
 )
 
 app = FastAPI(title="Enterprise Support API - Universal Aggregator Architecture")
@@ -122,42 +137,73 @@ def get_recent_memory(session_id: str) -> str:
 
 
 # ==========================================
-# 4. MULTI-MODEL FALLBACK ROUTER (OPENROUTER) — UNTOUCHED
+# 4. MULTI-MODEL FALLBACK ROUTER & SEMANTIC CACHE
 # ==========================================
-def call_llm(system_prompt: str, user_message: str = "", is_json: bool = False) -> str:
-    """Attempts the OpenRouter dynamic free pool, hot-swaps to Llama 3.1 if it fails."""
 
+# Retry 3 times, wait 2 seconds, then 4, then 8 before failing.
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+def _invoke_primary_openrouter(messages: list) -> str:
+    response = client.chat.completions.create(
+        model="openrouter/free", 
+        messages=messages,
+        temperature=0.1,
+    )
+    return response.choices[0].message.content
+
+# Retry 2 times for the fallback.
+@retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=2, max=5))
+def _invoke_fallback_grok(messages: list) -> str:
+    response = xai_client.chat.completions.create(
+        model="grok-beta", # Fast and highly capable of following JSON/Persona rules
+        messages=messages,
+        temperature=0.1,
+    )
+    return response.choices[0].message.content
+
+def call_llm(system_prompt: str, user_message: str = "", is_json: bool = False) -> str:
+    """Handles Caching, Retries, and xAI Hot-Swapping seamlessly."""
+    
     messages = [{"role": "system", "content": system_prompt}]
     if user_message:
         messages.append({"role": "user", "content": user_message})
 
-    # --- ATTEMPT 1: OpenRouter Dynamic Free Pool ---
+    # --- 1. SEMANTIC CACHE CHECK ---
+    # Create a unique MD5 hash based on the exact prompt string
+    cache_key = hashlib.md5(json.dumps(messages, sort_keys=True).encode('utf-8')).hexdigest()
+    
     try:
-        response = client.chat.completions.create(
-            model="openrouter/free",  # <-- The magic auto-router endpoint
-            messages=messages,
-            temperature=0.1,
-        )
-        return response.choices[0].message.content
+        cached_response = redis_client.get(cache_key)
+        if cached_response:
+            print("⚡ CACHE HIT: Returning instantaneous response from Redis")
+            return cached_response
+    except Exception as e:
+        print(f"⚠️ Redis Cache Read Failed (Ignoring): {e}")
 
+    # --- 2. PRIMARY INFERENCE (WITH RETRIES) ---
+    try:
+        result = _invoke_primary_openrouter(messages)
+        
     except Exception as e1:
-        print(f"⚠️ Primary Pool Failed ({e1}). Hot-swapping to Fallback Model...")
-
-        # --- ATTEMPT 2: Fallback Free Model (Meta Llama 3.1) ---
+        print(f"⚠️ Primary OpenRouter Failed after 3 retries: {e1}. Hot-swapping to xAI Grok...")
+        
+        # --- 3. FALLBACK INFERENCE (GROK) ---
         try:
-            response = client.chat.completions.create(
-                model="meta-llama/llama-3.1-8b-instruct:free",  # <-- Corrected version ID
-                messages=messages,
-                temperature=0.1,
-            )
-            return response.choices[0].message.content
-
+            result = _invoke_fallback_grok(messages)
+            
         except Exception as e2:
-            print(f"❌ CRITICAL: Fallback LLM also failed: {e2}")
+            print(f"❌ CRITICAL: Fallback xAI Grok also failed: {e2}")
             if is_json:
-                # Provide an empty JSON structure so the extraction step doesn't crash
                 return '{"keywords": [], "final": "Error connecting to AI providers."}'
             return "I am currently experiencing network latency across all AI models. Please try your request again."
+
+    # --- 4. SAVE SUCCESSFUL RESPONSE TO CACHE ---
+    try:
+        # Save to cache with a Time-To-Live (TTL) of 24 hours (86400 seconds)
+        redis_client.setex(cache_key, 86400, result)
+    except Exception as e:
+        print(f"⚠️ Redis Cache Write Failed: {e}")
+
+    return result
 
 
 # ==========================================
