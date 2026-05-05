@@ -34,7 +34,6 @@ docstring_parser==0.18.0
 docutils==0.22.4
 durationpy==0.10
 emoji==2.15.0
-en_core_web_sm==3.8.0
 fastapi==0.135.2
 filelock==3.25.0
 filetype==1.2.0
