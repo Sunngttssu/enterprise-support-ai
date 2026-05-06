@@ -1,13 +1,14 @@
 import os
 import json
 import re
+import time
 from pypdf import PdfReader
 from neo4j import GraphDatabase
 from openai import OpenAI
-from dotenv import load_dotenv # <-- Add this import
+from dotenv import load_dotenv
 
 # Load environment variables FIRST before trying to read them
-load_dotenv() 
+load_dotenv()
 
 # Initialize connections using existing environment variables
 URI  = os.getenv("NEO4J_URI_MAIN")
@@ -21,7 +22,7 @@ nvidia_client = OpenAI(
 )
 
 def extract_knowledge_from_text(text_chunk: str) -> list:
-    """Passes raw manual text to Grok to extract Graph Nodes and Relationships."""
+    """Passes raw manual text to Meta Llama 3.3 to extract Graph Nodes and Relationships."""
     
     prompt = f"""
     You are an enterprise data extraction algorithm. 
@@ -38,37 +39,27 @@ def extract_knowledge_from_text(text_chunk: str) -> list:
     
     try:
         response = nvidia_client.chat.completions.create(
-            model="meta/llama-3.3-70b-instruct", # <-- The newest Meta model
+            model="meta/llama-3.3-70b-instruct",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
             max_tokens=1024,
         )
         
         raw_output = response.choices[0].message.content
-        # Clean markdown formatting if Grok includes it
+        # Clean markdown formatting if the model includes it
         clean_json = raw_output.replace("```json", "").replace("```", "").strip()
         data = json.loads(clean_json)
         return data.get("relationships", [])
     except Exception as e:
-        print(f"⚠️ Extraction Failed: {e}")
+        print(f"⚠️ Extraction Failed for this chunk: {e}")
         return []
 
 def push_to_neo4j(relationships: list):
     """Writes the extracted JSON data into the Neo4j Knowledge Graph."""
     if not relationships:
+        print("⚠️ No valid relationships found to push.")
         return
         
-    cypher = """
-    UNWIND $rels AS rel
-    // Ensure nodes exist
-    MERGE (s:Entity {name: toLower(rel.source)})
-    MERGE (t:Entity {name: toLower(rel.target)})
-    // Create the dynamic relationship
-    WITH s, t, rel
-    CALL apoc.merge.relationship(s, toUpper(rel.relation), {}, {}, t) YIELD rel AS r
-    RETURN count(r)
-    """
-    
     # Fallback Cypher if APOC is not installed on your free tier
     fallback_cypher = """
     UNWIND $rels AS rel
@@ -85,7 +76,7 @@ def push_to_neo4j(relationships: list):
         print(f"⚠️ Neo4j Write Error: {e}")
 
 def run_daily_ingestion():
-    """Scans the manual folder and processes new files."""
+    """Scans the manual folder and processes new files in safe chunks."""
     print("🔄 Starting Scheduled Knowledge Ingestion...")
     folder_path = "enterprise_manuals"
     
@@ -97,22 +88,49 @@ def run_daily_ingestion():
     for filename in os.listdir(folder_path):
         if filename.endswith(".pdf"):
             filepath = os.path.join(folder_path, filename)
-            print(f"📄 Processing: {filename}")
+            print(f"\n📄 Processing Document: {filename}")
             
-            # 1. Read PDF
+            # 1. Read PDF (Up to 20 pages max to save free credits)
             reader = PdfReader(filepath)
+            max_pages = min(len(reader.pages), 20)
+            
             full_text = ""
-            for page in reader.pages:
-                full_text += page.extract_text() + "\n"
+            for i in range(max_pages):
+                page_text = reader.pages[i].extract_text()
+                if page_text:
+                    full_text += page_text + "\n"
             
-            # 2. Extract Data
-            # Note: For massive PDFs, you would chunk this. We assume short IT bulletins for now.
-            relationships = extract_knowledge_from_text(full_text[:4000]) 
+            # 2. Chunk the text into safe 4000-character blocks
+            chunk_size = 4000
+            chunks = [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size)]
             
-            # 3. Push to Graph
-            push_to_neo4j(relationships)
+            print(f"🧩 Split {max_pages} pages into {len(chunks)} chunks. Extracting facts...")
             
-            # 4. Rename file so it isn't processed again tomorrow
+            all_relationships = []
+            
+            # 3. Process each chunk sequentially with a rate-limit delay
+            for idx, chunk in enumerate(chunks):
+                print(f"   -> Analyzing chunk {idx + 1} of {len(chunks)}...")
+                rels = extract_knowledge_from_text(chunk)
+                
+                if rels:
+                    all_relationships.extend(rels)
+                
+                # THROTTLING: Wait 4 seconds between chunks to protect your free API tier
+                if idx < len(chunks) - 1:
+                    time.sleep(4) 
+            
+            # 4. Push all aggregated facts to Graph Database
+            print("🚀 Pushing all extracted facts to Neo4j...")
+            push_to_neo4j(all_relationships)
+            
+            # 5. Rename file so it isn't processed again tomorrow
             os.rename(filepath, filepath + ".processed")
+            print(f"✅ Finished {filename}. Marked as processed.")
             
-    print("✅ Ingestion Cycle Complete.")
+    print("\n✅ Ingestion Cycle Complete.")
+
+# If you ever want to run this file directly to test it without starting the server, 
+# uncomment the two lines below:
+# if __name__ == "__main__":
+#     run_daily_ingestion()
