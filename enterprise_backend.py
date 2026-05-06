@@ -1,3 +1,6 @@
+from apscheduler.schedulers.background import BackgroundScheduler
+from ingestion import run_daily_ingestion
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -33,10 +36,10 @@ client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
 )
 
-# Fallback OpenAI Client (xAI / Grok)
-xai_client = OpenAI(
-    base_url="https://api.x.ai/v1",
-    api_key=os.getenv("XAI_API_KEY"),
+# Use NVIDIA NIM for extraction
+nvidia_client = OpenAI(
+    base_url="https://integrate.api.nvidia.com/v1",
+    api_key=os.getenv("NVIDIA_API_KEY")
 )
 
 # Semantic Cache Client (Upstash Serverless Redis)
@@ -45,7 +48,26 @@ redis_client = Redis(
     token=os.getenv("UPSTASH_REDIS_REST_TOKEN")
 )
 
-app = FastAPI(title="Enterprise Support API - Universal Aggregator Architecture")
+# ==========================================
+# BACKGROUND SCHEDULER & LIFESPAN MANAGER
+# ==========================================
+scheduler = BackgroundScheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Schedule the ingestion to run every 24 hours
+    # NOTE: Change 'hours=24' to 'minutes=1' here if you want to test it locally!
+    scheduler.add_job(run_daily_ingestion, 'interval', hours=24)
+    scheduler.start()
+    print("⏰ APScheduler started. Background ingestion active.")
+    yield
+    # Shutdown: Cleanly stop the scheduler
+    scheduler.shutdown()
+
+app = FastAPI(
+    title="Enterprise Support API - Universal Aggregator Architecture",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -152,11 +174,12 @@ def _invoke_primary_openrouter(messages: list) -> str:
 
 # Retry 2 times for the fallback.
 @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=2, max=5))
-def _invoke_fallback_grok(messages: list) -> str:
-    response = xai_client.chat.completions.create(
-        model="grok-beta", # Fast and highly capable of following JSON/Persona rules
+def _invoke_fallback_nvidia(messages: list) -> str:
+    response = nvidia_client.chat.completions.create(
+        model="meta/llama-3.3-70b-instruct", # <-- Updated here too
         messages=messages,
         temperature=0.1,
+        max_tokens=1024,
     )
     return response.choices[0].message.content
 

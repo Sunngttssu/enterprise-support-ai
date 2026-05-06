@@ -6,6 +6,7 @@ aiosignal==1.4.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
 anyio==4.12.1
+APScheduler==3.11.2
 attrs==25.4.0
 bcrypt==5.0.0
 beautifulsoup4==4.14.3
@@ -34,6 +35,7 @@ docstring_parser==0.18.0
 docutils==0.22.4
 durationpy==0.10
 emoji==2.15.0
+en_core_web_sm==3.8.0
 fastapi==0.135.2
 filelock==3.25.0
 filetype==1.2.0
@@ -204,10 +206,12 @@ typing-inspect==0.9.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.3
+tzlocal==5.3.1
 unstructured==0.21.5
 unstructured-client==0.42.10
 unstructured.pytesseract==0.3.15
 unstructured_inference==1.5.2
+upstash-redis==1.7.0
 uritemplate==4.2.0
 urllib3==2.6.3
 uuid_utils==0.14.1
@@ -223,4 +227,3 @@ xxhash==3.6.0
 yarl==1.23.0
 zipp==3.23.0
 zstandard==0.25.0
-upstash-redis
