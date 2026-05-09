@@ -348,7 +348,7 @@ The system was evaluated against a curated dataset of 50 enterprise IT troublesh
 |---|---|---|---|
 | Zero-Shot LLM (GPT-3.5) | 61% | 2,100ms | High |
 | Vector RAG (ChromaDB) | 74% | 890ms | Medium |
-| **GraphSentinel (Ours)** | **89%** | **< 50ms*** | **Low** |
+| **GraphSentinel (My System)** | **89%** | **< 50ms*** | **Low** |
 
 *\* On semantic cache hit. Cold inference: ~2,400ms.*
 
@@ -368,12 +368,12 @@ Full evaluation results are available in [`evaluation_report.csv`](./evaluation_
 
 ## 👨‍💻 Author
 
-**[Your Name]**
-B.Tech — Computer Science & Engineering (AI & Data Science)
-*[Your University Name], Batch of 20XX*
+**[V. K. Shivaang Simha]**
+B.Tech — Artifical Intelligence & Data Science (2022-2026)
+*[SMIT]*
 
-[![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?style=flat-square&logo=github)](https://github.com/YOUR_USERNAME)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com/in/YOUR_PROFILE)
+[![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?style=flat-square&logo=github)](https://github.com/Sunngttssu)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/v-k-shivaang-simha-b81207246/)
 
 ---
 
