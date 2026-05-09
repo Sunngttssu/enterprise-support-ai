@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Network } from 'lucide-react';
+import { Network, LayoutDashboard } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 // memo: Header only re-renders when isOnline flips, not on every
@@ -47,7 +47,8 @@ export default memo(function Header({ isOnline }) {
         </h1>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* System status pill */}
         <div
           style={{
             display: 'flex',
@@ -73,8 +74,41 @@ export default memo(function Header({ isOnline }) {
             {isOnline ? 'System Online' : 'System Offline'}
           </span>
         </div>
-        
-        {/* Toggle Theme specifically requested by user */}
+
+        {/* Admin link — opens in a NEW TAB, chat stays open */}
+        <a
+          href="/admin"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            background: 'var(--bg-glass-light)',
+            border: '1px solid var(--border-light)',
+            color: 'var(--text-secondary)',
+            fontSize: '13px',
+            fontWeight: 500,
+            textDecoration: 'none',
+            letterSpacing: '0.02em',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'var(--accent-hover)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'var(--bg-glass-light)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
+          }}
+        >
+          <LayoutDashboard size={14} strokeWidth={1.5} />
+          Admin
+        </a>
+
+        {/* Toggle Theme */}
         <ThemeToggle />
       </div>
     </header>

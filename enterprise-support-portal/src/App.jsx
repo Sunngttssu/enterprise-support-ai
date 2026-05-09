@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, startTransition } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
 import ChatInput from './components/ChatInput';
 import RuixenBackground from './components/RuixenBackground';
+import AdminDashboard from './components/AdminDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 import { useChat } from './hooks/useChat';
 import { checkOllamaHealth } from './utils/ollamaApi';
 
@@ -162,73 +165,84 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <RuixenBackground>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100vh',
-          background: 'transparent',
-          color: '#f8fafc',
-          overflow: 'hidden',
-        }}
-      >
-        <Header isOnline={isOnline} />
+    <Routes>
+      {/* ── Admin route — protected, standalone ── */}
+      <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
 
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          <Sidebar
-            sessions={sessions}
-            activeSession={activeSessionId}
-            onNewChat={handleNewChat}
-            onSelectSession={handleSelectSession}
-            onDeleteSession={handleDeleteSession}
-          />
+      {/* ── Main chat shell ── */}
+      <Route
+        path="/*"
+        element={
+          <RuixenBackground>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100vh',
+                background: 'transparent',
+                color: '#f8fafc',
+                overflow: 'hidden',
+              }}
+            >
+              <Header isOnline={isOnline} />
 
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              position: 'relative',
-            }}
-          >
-            <ChatWindow messages={messages} isStreaming={isStreaming} />
+              <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                <Sidebar
+                  sessions={sessions}
+                  activeSession={activeSessionId}
+                  onNewChat={handleNewChat}
+                  onSelectSession={handleSelectSession}
+                  onDeleteSession={handleDeleteSession}
+                />
 
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: '24px' }}>
-              <ChatInput
-                onSend={handleSend}
-                onStop={stopStreaming}
-                isStreaming={isStreaming}
-              />
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    position: 'relative',
+                  }}
+                >
+                  <ChatWindow messages={messages} isStreaming={isStreaming} />
+
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, paddingBottom: '24px' }}>
+                    <ChatInput
+                      onSend={handleSend}
+                      onStop={stopStreaming}
+                      isStreaming={isStreaming}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="animate-fade-in"
+                  style={{
+                    position: 'fixed',
+                    top: '80px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(239, 68, 68, 0.9)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(239, 68, 68, 0.5)',
+                    color: '#fff',
+                    borderRadius: '12px',
+                    padding: '12px 24px',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    boxShadow: '0 8px 32px rgba(239, 68, 68, 0.25)',
+                    zIndex: 100,
+                  }}
+                >
+                  {error}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-
-        {error && (
-          <div
-            role="alert"
-            className="animate-fade-in"
-            style={{
-              position: 'fixed',
-              top: '80px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(239, 68, 68, 0.9)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(239, 68, 68, 0.5)',
-              color: '#fff',
-              borderRadius: '12px',
-              padding: '12px 24px',
-              fontSize: '13px',
-              fontWeight: 500,
-              boxShadow: '0 8px 32px rgba(239, 68, 68, 0.25)',
-              zIndex: 100,
-            }}
-          >
-            {error}
-          </div>
-        )}
-      </div>
-    </RuixenBackground>
+          </RuixenBackground>
+        }
+      />
+    </Routes>
   );
 }

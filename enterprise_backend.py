@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from ingestion import run_daily_ingestion
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from tavily import TavilyClient
@@ -176,7 +176,7 @@ def _invoke_primary_openrouter(messages: list) -> str:
 @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=2, max=5))
 def _invoke_fallback_nvidia(messages: list) -> str:
     response = nvidia_client.chat.completions.create(
-        model="meta/llama-3.3-70b-instruct", # <-- Updated here too
+        model="meta/llama-3.3-70b-instruct",
         messages=messages,
         temperature=0.1,
         max_tokens=1024,
@@ -207,14 +207,14 @@ def call_llm(system_prompt: str, user_message: str = "", is_json: bool = False) 
         result = _invoke_primary_openrouter(messages)
         
     except Exception as e1:
-        print(f"⚠️ Primary OpenRouter Failed after 3 retries: {e1}. Hot-swapping to xAI Grok...")
+        print(f"⚠️ Primary OpenRouter Failed after 3 retries: {e1}. Hot-swapping to NVIDIA NIM...")
         
-        # --- 3. FALLBACK INFERENCE (GROK) ---
+        # --- 3. FALLBACK INFERENCE (NVIDIA) ---
         try:
-            result = _invoke_fallback_grok(messages)
+            result = _invoke_fallback_nvidia(messages)
             
         except Exception as e2:
-            print(f"❌ CRITICAL: Fallback xAI Grok also failed: {e2}")
+            print(f"❌ CRITICAL: Fallback NVIDIA NIM also failed: {e2}")
             if is_json:
                 return '{"keywords": [], "final": "Error connecting to AI providers."}'
             return "I am currently experiencing network latency across all AI models. Please try your request again."
@@ -302,6 +302,73 @@ def retrieve_graph_context(keywords: list) -> str:
             sentence = f"[{record['source']}] {record['rel']} [{record['target']}]."
             context_sentences.append(sentence.replace("_", " "))
     return " | ".join(context_sentences)
+
+
+# ==========================================
+# ADMIN DASHBOARD ENDPOINTS
+# ==========================================
+
+@app.get("/api/admin/graph-data")
+async def get_graph_data():
+    """Returns all nodes and edges for the frontend visualizer."""
+    query = "MATCH (n:Entity)-[r]->(m:Entity) RETURN n.name as source, type(r) as rel, m.name as target LIMIT 1000"
+    try:
+        with driver.session() as session:
+            result = session.run(query)
+            return [{"source": r["source"], "rel": r["rel"], "target": r["target"]} for r in result]
+    except Exception as e:
+        print(f"⚠️ Error fetching graph data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/ingestion-status")
+async def get_ingestion_status():
+    """Checks if there are any unprocessed PDFs currently being ingested."""
+    folder_path = "enterprise_manuals"
+    if not os.path.exists(folder_path):
+        return {"status": "idle"}
+    
+    # Check if any .pdf files exist (that haven't been renamed to .processed)
+    processing_files = [f for f in os.listdir(folder_path) if f.endswith(".pdf")]
+    
+    if processing_files:
+        return {"status": "processing", "files": len(processing_files)}
+    else:
+        return {"status": "idle"}
+
+
+@app.delete("/api/admin/clear-cache")
+async def clear_cache():
+    """Force clears the Redis semantic cache."""
+    try:
+        redis_client.flushall()
+        return {"status": "Cache cleared successfully"}
+    except Exception as e:
+        print(f"⚠️ Error clearing cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/upload-manual")
+async def upload_manual(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    """Receives a PDF from the UI, saves it, and triggers background extraction."""
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+    
+    folder_path = "enterprise_manuals"
+    os.makedirs(folder_path, exist_ok=True)
+    file_path = os.path.join(folder_path, file.filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            buffer.write(await file.read())
+            
+        # Trigger ingestion in the background so the UI doesn't freeze waiting for the LLM
+        background_tasks.add_task(run_daily_ingestion)
+        
+        return {"status": "success", "message": f"File '{file.filename}' uploaded. Ingestion processing in background."}
+    except Exception as e:
+        print(f"⚠️ Error uploading manual: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ==========================================
